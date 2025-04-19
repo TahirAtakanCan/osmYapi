@@ -51,6 +51,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
           ? 'assets/excel/58nolu.xlsx'
           : 'assets/excel/59nolu.xlsx';
 
+      print('Excel dosyası yükleniyor: $excelFileName');
+      
       // Excel dosyasını oku
       final ByteData data = await rootBundle.load(excelFileName);
       var bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
@@ -60,9 +62,14 @@ class _CalculateScreenState extends State<CalculateScreen> {
 
       // Excel içindeki verileri oku
       for (var table in excel.tables.keys) {
+        print('Excel tablosu okunuyor: $table');
+        
         // Önce tablo yapısını inceleyip sütun adlarını belirle
         var rows = excel.tables[table]!.rows;
-        if (rows.isEmpty) continue;
+        if (rows.isEmpty) {
+          print('Tablo boş: $table');
+          continue;
+        }
         
         // İlk satır (başlık satırı)
         var headerRow = rows[0];
@@ -72,6 +79,15 @@ class _CalculateScreenState extends State<CalculateScreen> {
         }
         
         print("Excel sütun başlıkları: $headers");
+        
+        // Mevcut sütun başlıklarınız
+        bool hasUrunKodu = headers.any((h) => h.toUpperCase() == 'ÜRÜN KODU');
+        bool hasUrunAdi = headers.any((h) => h.toUpperCase() == 'ÜRÜN ADI');
+        bool hasProfilBoyu = headers.any((h) => h.toUpperCase().contains('PROFİL BOYU'));
+        bool hasFiyat = headers.any((h) => h.toUpperCase().contains('FİYAT'));
+        
+        print('Sütun kontrolü: Ürün Kodu: $hasUrunKodu, Ürün Adı: $hasUrunAdi, ' + 
+              'Profil Boyu: $hasProfilBoyu, Fiyat: $hasFiyat');
         
         // 1. sütundan sonraki satırları oku (başlığı atlayarak)
         for (var i = 1; i < rows.length; i++) {
@@ -83,24 +99,43 @@ class _CalculateScreenState extends State<CalculateScreen> {
             for (var j = 0; j < headers.length; j++) {
               if (j < row.length && row[j]?.value != null) {
                 String header = headers[j];
-                if (header == 'PROFİL BOYU (metre)' || header == 'FİYAT (Metre)') {
+                
+                // Sayısal değer kontrolü
+                dynamic cellValue = row[j]?.value;
+                if (header.toUpperCase().contains('PROFİL BOYU') || 
+                    header.toUpperCase().contains('FİYAT')) {
                   // Sayısal değerleri double olarak çevir
-                  rowData[header] = double.tryParse(row[j]?.value.toString() ?? '0') ?? 0.0;
+                  double numValue = 0.0;
+                  
+                  if (cellValue != null) {
+                    if (cellValue is num) {
+                      numValue = cellValue.toDouble();
+                    } else if (cellValue is String) {
+                      // Virgül yerine nokta kullanımını destekle
+                      String numStr = cellValue.replaceAll(',', '.');
+                      numValue = double.tryParse(numStr) ?? 0.0;
+                    }
+                  }
+                  
+                  rowData[header] = numValue;
                 } else {
-                  rowData[header] = row[j]?.value.toString() ?? '';
+                  rowData[header] = cellValue?.toString() ?? '';
                 }
               }
             }
             
-            // En azından UrunKodu veya ilk sütun dolu ise ekle
-            if (rowData.containsKey(headers[0]) && rowData[headers[0]].toString().isNotEmpty) {
-              print("Okunan ürün: $rowData");
+            // En azından ilk sütun dolu ise ekle
+            if (rowData.containsKey(headers[0]) && 
+                rowData[headers[0]].toString().isNotEmpty) {
+              print("Ürün: ${rowData[headers[0]]} yükleniyor");
               tempData.add(rowData);
             }
           }
         }
       }
 
+      print('Toplam ${tempData.length} ürün yüklendi');
+      
       setState(() {
         excelData = tempData;
         isLoading = false;
@@ -115,11 +150,15 @@ class _CalculateScreenState extends State<CalculateScreen> {
   
   void _addProduct() {
     if (selectedProduct != null) {
+      String codeColumn = _getProductCodeColumn();
+      
       // Ürünün zaten eklenip eklenmediğini kontrol et
-      bool isAlreadyAdded = selectedProducts.any(
-        (product) => product[excelData.isNotEmpty && excelData[0].containsKey('UrunKodu') ? 'UrunKodu' : excelData[0].keys.first] == 
-                      selectedProduct![excelData.isNotEmpty && excelData[0].containsKey('UrunKodu') ? 'UrunKodu' : excelData[0].keys.first]
-      );
+      bool isAlreadyAdded = false;
+      if (codeColumn.isNotEmpty) {
+        isAlreadyAdded = selectedProducts.any(
+          (product) => product[codeColumn] == selectedProduct![codeColumn]
+        );
+      }
       
       if (!isAlreadyAdded) {
         setState(() {
@@ -166,7 +205,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
   // Profil boyu ve Fiyat sütun adlarını belirle
   String _getProfilBoyuColumn() {
     if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('ProfilBoyu')) return 'ProfilBoyu';
+      if (excelData[0].containsKey('PROFİL BOYU (metre)')) return 'PROFİL BOYU (metre)';
       // Profil Boyu için alternatif isimler
       for (var key in excelData[0].keys) {
         if (key.toLowerCase().contains('profil') || key.toLowerCase().contains('boy')) {
@@ -183,7 +222,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
   
   String _getFiyatColumn() {
     if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('Fiyat')) return 'Fiyat';
+      if (excelData[0].containsKey('FİYAT (Metre)')) return 'FİYAT (Metre)';
       // Fiyat için alternatif isimler
       for (var key in excelData[0].keys) {
         if (key.toLowerCase().contains('fiyat') || key.toLowerCase().contains('ücret') || 
@@ -204,7 +243,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
   // Ürün kodunu ve adını belirle
   String _getProductCodeColumn() {
     if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('UrunKodu')) return 'UrunKodu';
+      if (excelData[0].containsKey('ÜRÜN KODU')) return 'ÜRÜN KODU';
       // Alternatif isimler
       for (var key in excelData[0].keys) {
         if (key.toLowerCase().contains('kod') || key.toLowerCase().contains('code')) {
@@ -219,7 +258,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
   
   String _getProductNameColumn() {
     if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('UrunAdi')) return 'UrunAdi';
+      if (excelData[0].containsKey('ÜRÜN ADI')) return 'ÜRÜN ADI';
       // Alternatif isimler
       for (var key in excelData[0].keys) {
         if (key.toLowerCase().contains('ad') || key.toLowerCase().contains('name') || 
@@ -311,15 +350,18 @@ class _CalculateScreenState extends State<CalculateScreen> {
                             value: selectedProduct,
                             isExpanded: true,
                             items: excelData.map((item) {
+                              String displayText = '';
+                              if (codeColumn.isNotEmpty && nameColumn.isNotEmpty && 
+                                  item.containsKey(codeColumn) && item.containsKey(nameColumn)) {
+                                displayText = '${item[codeColumn]} - ${item[nameColumn]}';
+                              } else if (codeColumn.isNotEmpty && item.containsKey(codeColumn)) {
+                                displayText = item[codeColumn].toString();
+                              } else {
+                                displayText = 'Ürün';
+                              }
                               return DropdownMenuItem<Map<String, dynamic>>(
                                 value: item,
-                                child: Text(
-                                  codeColumn.isNotEmpty && nameColumn.isNotEmpty
-                                    ? '${item[codeColumn]} - ${item[nameColumn]}'
-                                    : codeColumn.isNotEmpty
-                                      ? item[codeColumn].toString()
-                                      : 'Ürün'
-                                ),
+                                child: Text(displayText),
                               );
                             }).toList(),
                             onChanged: (value) {
@@ -337,14 +379,14 @@ class _CalculateScreenState extends State<CalculateScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
                       ),
                       child: const Text('Ekle'),
                     ),
                   ],
                 ),
                 
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 const Text(
                   'Seçilen Ürünler',
                   style: TextStyle(
@@ -362,6 +404,25 @@ class _CalculateScreenState extends State<CalculateScreen> {
                         itemCount: selectedProducts.length,
                         itemBuilder: (context, index) {
                           final product = selectedProducts[index];
+                          String displayTitle = '';
+                          if (codeColumn.isNotEmpty && nameColumn.isNotEmpty && 
+                              product.containsKey(codeColumn) && product.containsKey(nameColumn)) {
+                            displayTitle = '${product[codeColumn]} - ${product[nameColumn]}';
+                          } else if (codeColumn.isNotEmpty && product.containsKey(codeColumn)) {
+                            displayTitle = product[codeColumn].toString();
+                          } else {
+                            displayTitle = 'Ürün ${index + 1}';
+                          }
+                          
+                          String profilBoyuText = '';
+                          String fiyatText = '';
+                          if (profilBoyuColumn.isNotEmpty && product.containsKey(profilBoyuColumn)) {
+                            profilBoyuText = 'Profil Boyu: ${product[profilBoyuColumn]}';
+                          }
+                          if (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) {
+                            fiyatText = 'Fiyat: ${product[fiyatColumn]} TL';
+                          }
+                          
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: Padding(
@@ -374,17 +435,11 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          codeColumn.isNotEmpty && nameColumn.isNotEmpty 
-                                            ? '${product[codeColumn]} - ${product[nameColumn]}'
-                                            : codeColumn.isNotEmpty
-                                              ? product[codeColumn].toString()
-                                              : 'Ürün',
+                                          displayTitle,
                                           style: const TextStyle(fontWeight: FontWeight.bold),
                                         ),
-                                        if (profilBoyuColumn.isNotEmpty && fiyatColumn.isNotEmpty)
-                                          Text(
-                                            'Profil Boyu: ${product[profilBoyuColumn]} - Fiyat: ${product[fiyatColumn]} TL'
-                                          ),
+                                        if (profilBoyuText.isNotEmpty || fiyatText.isNotEmpty)
+                                          Text('$profilBoyuText ${profilBoyuText.isNotEmpty && fiyatText.isNotEmpty ? " - " : ""} $fiyatText'),
                                       ],
                                     ),
                                   ),
