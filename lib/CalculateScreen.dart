@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart' hide Border;
-import 'dart:io';
 import 'package:flutter/services.dart';
 import 'dart:typed_data';
+import 'package:dropdown_search/dropdown_search.dart';
+import 'package:get/get.dart';
+import 'calculate_controller.dart';
 
 class CalculateScreen extends StatefulWidget {
   final String buttonType;
@@ -14,35 +16,16 @@ class CalculateScreen extends StatefulWidget {
 }
 
 class _CalculateScreenState extends State<CalculateScreen> {
-  List<Map<String, dynamic>> excelData = [];
-  List<Map<String, dynamic>> selectedProducts = [];
-  Map<int, TextEditingController> metreControllers = {};
-  double toplamTutar = 0.0;
-  double netTutar = 0.0;
-  
-  final TextEditingController iskontoController = TextEditingController(text: '0');
-  final TextEditingController kdvController = TextEditingController(text: '18');
-  
+  // GetX controller
+  late final CalculateController controller;
   Map<String, dynamic>? selectedProduct;
-  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    // Controller'ı başlat
+    controller = Get.put(CalculateController(), tag: widget.buttonType);
     _loadExcelData();
-    
-    // İskonto ve KDV değişikliklerinde hesaplamaları güncelle
-    iskontoController.addListener(_calculateNetTutar);
-    kdvController.addListener(_calculateNetTutar);
-  }
-  
-  @override
-  void dispose() {
-    // Controller'ları temizle
-    iskontoController.dispose();
-    kdvController.dispose();
-    metreControllers.forEach((_, controller) => controller.dispose());
-    super.dispose();
   }
 
   Future<void> _loadExcelData() async {
@@ -79,15 +62,6 @@ class _CalculateScreenState extends State<CalculateScreen> {
         }
         
         print("Excel sütun başlıkları: $headers");
-        
-        // Mevcut sütun başlıklarınız
-        bool hasUrunKodu = headers.any((h) => h.toUpperCase() == 'ÜRÜN KODU');
-        bool hasUrunAdi = headers.any((h) => h.toUpperCase() == 'ÜRÜN ADI');
-        bool hasProfilBoyu = headers.any((h) => h.toUpperCase().contains('PROFİL BOYU'));
-        bool hasFiyat = headers.any((h) => h.toUpperCase().contains('FİYAT'));
-        
-        print('Sütun kontrolü: Ürün Kodu: $hasUrunKodu, Ürün Adı: $hasUrunAdi, ' + 
-              'Profil Boyu: $hasProfilBoyu, Fiyat: $hasFiyat');
         
         // 1. sütundan sonraki satırları oku (başlığı atlayarak)
         for (var i = 1; i < rows.length; i++) {
@@ -136,197 +110,72 @@ class _CalculateScreenState extends State<CalculateScreen> {
 
       print('Toplam ${tempData.length} ürün yüklendi');
       
-      setState(() {
-        excelData = tempData;
-        isLoading = false;
-      });
+      // Controller'a veriyi aktar
+      controller.setExcelData(tempData);
+      
     } catch (e) {
       print('Excel veri okuma hatası: $e');
-      setState(() {
-        isLoading = false;
-      });
+      controller.isLoading.value = false;
     }
   }
   
-  void _addProduct() {
-    if (selectedProduct != null) {
-      String codeColumn = _getProductCodeColumn();
-      
-      // Ürünün zaten eklenip eklenmediğini kontrol et
-      bool isAlreadyAdded = false;
-      if (codeColumn.isNotEmpty) {
-        isAlreadyAdded = selectedProducts.any(
-          (product) => product[codeColumn] == selectedProduct![codeColumn]
+  Future<void> _showDeleteConfirmationDialog(int index) async {
+    final product = controller.selectedProducts[index];
+    String codeColumn = controller.codeColumn;
+    String nameColumn = controller.nameColumn;
+    
+    String productName = '';
+    if (codeColumn.isNotEmpty && nameColumn.isNotEmpty &&
+        product.containsKey(codeColumn) && product.containsKey(nameColumn)) {
+      productName = '${product[codeColumn]} - ${product[nameColumn]}';
+    } else if (codeColumn.isNotEmpty && product.containsKey(codeColumn)) {
+      productName = product[codeColumn].toString();
+    } else {
+      productName = 'Ürün ${index + 1}';
+    }
+    
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Ürün Silme Onayı'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('$productName ürünü silinecek.'),
+                const Text('Bu işlemi onaylıyor musunuz?'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('İptal'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('Sil', style: TextStyle(color: Colors.red)),
+              onPressed: () {
+                Navigator.of(context).pop();
+                controller.removeProduct(index);
+              },
+            ),
+          ],
         );
-      }
-      
-      if (!isAlreadyAdded) {
-        setState(() {
-          final newProductIndex = selectedProducts.length;
-          // Ürünü ekle ve metre controller'ı oluştur
-          selectedProducts.add(Map<String, dynamic>.from(selectedProduct!));
-          metreControllers[newProductIndex] = TextEditingController(text: '1');
-          metreControllers[newProductIndex]!.addListener(() {
-            _calculateTotalPrice();
-          });
-          
-          _calculateTotalPrice();
-        });
-      } else {
-        // Kullanıcıya zaten eklendiğini bildir
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bu ürün zaten eklenmiş!'))
-        );
-      }
-    }
-  }
-  
-  void _removeProduct(int index) {
-    setState(() {
-      // Ürünü kaldır
-      metreControllers[index]?.dispose();
-      selectedProducts.removeAt(index);
-      
-      // Controller'ları yeniden indeksle
-      final Map<int, TextEditingController> updatedControllers = {};
-      for (int i = 0; i < selectedProducts.length; i++) {
-        if (i >= index) {
-          updatedControllers[i] = metreControllers[i + 1]!;
-        } else {
-          updatedControllers[i] = metreControllers[i]!;
-        }
-      }
-      metreControllers = updatedControllers;
-      
-      _calculateTotalPrice();
-    });
-  }
-  
-  // Profil boyu ve Fiyat sütun adlarını belirle
-  String _getProfilBoyuColumn() {
-    if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('PROFİL BOYU (metre)')) return 'PROFİL BOYU (metre)';
-      // Profil Boyu için alternatif isimler
-      for (var key in excelData[0].keys) {
-        if (key.toLowerCase().contains('profil') || key.toLowerCase().contains('boy')) {
-          return key;
-        }
-      }
-      // Bulunamazsa ilk sayısal değeri içeren sütunu kullan
-      for (var key in excelData[0].keys) {
-        if (excelData[0][key] is double) return key;
-      }
-    }
-    return '';
-  }
-  
-  String _getFiyatColumn() {
-    if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('FİYAT (Metre)')) return 'FİYAT (Metre)';
-      // Fiyat için alternatif isimler
-      for (var key in excelData[0].keys) {
-        if (key.toLowerCase().contains('fiyat') || key.toLowerCase().contains('ücret') || 
-            key.toLowerCase().contains('tutar') || key.toLowerCase().contains('price')) {
-          return key;
-        }
-      }
-      // Bulunamazsa son sayısal değeri içeren sütunu kullan
-      List<String> numericColumns = [];
-      for (var key in excelData[0].keys) {
-        if (excelData[0][key] is double) numericColumns.add(key);
-      }
-      if (numericColumns.isNotEmpty) return numericColumns.last;
-    }
-    return '';
-  }
-  
-  // Ürün kodunu ve adını belirle
-  String _getProductCodeColumn() {
-    if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('ÜRÜN KODU')) return 'ÜRÜN KODU';
-      // Alternatif isimler
-      for (var key in excelData[0].keys) {
-        if (key.toLowerCase().contains('kod') || key.toLowerCase().contains('code')) {
-          return key;
-        }
-      }
-      // İlk sütunu kullan
-      return excelData[0].keys.first;
-    }
-    return '';
-  }
-  
-  String _getProductNameColumn() {
-    if (excelData.isNotEmpty) {
-      if (excelData[0].containsKey('ÜRÜN ADI')) return 'ÜRÜN ADI';
-      // Alternatif isimler
-      for (var key in excelData[0].keys) {
-        if (key.toLowerCase().contains('ad') || key.toLowerCase().contains('name') || 
-            key.toLowerCase().contains('ürün') || key.toLowerCase().contains('product')) {
-          return key;
-        }
-      }
-      // İkinci sütunu kullan (varsa)
-      var keys = excelData[0].keys.toList();
-      if (keys.length > 1) return keys[1];
-    }
-    return '';
-  }
-  
-  void _calculateTotalPrice() {
-    double total = 0.0;
-    
-    String profilBoyuColumn = _getProfilBoyuColumn();
-    String fiyatColumn = _getFiyatColumn();
-    
-    for (int i = 0; i < selectedProducts.length; i++) {
-      final product = selectedProducts[i];
-      final controller = metreControllers[i];
-      
-      if (controller != null) {
-        final metre = double.tryParse(controller.text) ?? 0.0;
-        
-        // Eğer ProfilBoyu ve Fiyat sütunları bulunabilmişse hesapla
-        if (profilBoyuColumn.isNotEmpty && fiyatColumn.isNotEmpty &&
-            product.containsKey(profilBoyuColumn) && product.containsKey(fiyatColumn)) {
-          total += (product[profilBoyuColumn] * product[fiyatColumn] * metre);
-        }
-      }
-    }
-    
-    setState(() {
-      toplamTutar = total;
-    });
-    
-    _calculateNetTutar();
-  }
-  
-  void _calculateNetTutar() {
-    final iskonto = double.tryParse(iskontoController.text) ?? 0.0;
-    final kdv = double.tryParse(kdvController.text) ?? 18.0;
-    
-    final tutar = toplamTutar - (toplamTutar * iskonto / 100);
-    final kdvTutar = tutar * kdv / 100;
-    
-    setState(() {
-      netTutar = tutar + kdvTutar;
-    });
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Dinamik sütun adlarını al
-    String codeColumn = _getProductCodeColumn();
-    String nameColumn = _getProductNameColumn();
-    String profilBoyuColumn = _getProfilBoyuColumn();
-    String fiyatColumn = _getFiyatColumn();
-    
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.buttonType} Hesaplamaları'),
         backgroundColor: widget.buttonType == '58 nolu' ? Colors.blue.shade800 : Colors.red.shade700,
       ),
-      body: isLoading
+      body: Obx(() => controller.isLoading.value
         ? const Center(child: CircularProgressIndicator())
         : Container(
             padding: const EdgeInsets.all(16.0),
@@ -334,56 +183,49 @@ class _CalculateScreenState extends State<CalculateScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Ürün Seçimi ve Ekle Butonu
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<Map<String, dynamic>>(
-                            hint: const Text('Ürün Seçiniz'),
-                            value: selectedProduct,
-                            isExpanded: true,
-                            items: excelData.map((item) {
-                              String displayText = '';
-                              if (codeColumn.isNotEmpty && nameColumn.isNotEmpty && 
-                                  item.containsKey(codeColumn) && item.containsKey(nameColumn)) {
-                                displayText = '${item[codeColumn]} - ${item[nameColumn]}';
-                              } else if (codeColumn.isNotEmpty && item.containsKey(codeColumn)) {
-                                displayText = item[codeColumn].toString();
-                              } else {
-                                displayText = 'Ürün';
-                              }
-                              return DropdownMenuItem<Map<String, dynamic>>(
-                                value: item,
-                                child: Text(displayText),
-                              );
-                            }).toList(),
-                            onChanged: (value) {
-                              setState(() {
-                                selectedProduct = value;
-                              });
-                            },
-                          ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: DropdownSearch<Map<String, dynamic>>(
+                    popupProps: PopupProps.menu(
+                      showSearchBox: true,
+                      searchFieldProps: TextFieldProps(
+                        decoration: const InputDecoration(
+                          labelText: 'Ürün Ara',
+                          border: OutlineInputBorder(),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: _addProduct,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                    items: controller.excelData,
+                    itemAsString: (item) {
+                      if (item == null) return '';
+                      String displayText = '';
+                      if (controller.codeColumn.isNotEmpty && controller.nameColumn.isNotEmpty && 
+                          item.containsKey(controller.codeColumn) && item.containsKey(controller.nameColumn)) {
+                        displayText = '${item[controller.codeColumn]} - ${item[controller.nameColumn]}';
+                      } else if (controller.codeColumn.isNotEmpty && item.containsKey(controller.codeColumn)) {
+                        displayText = item[controller.codeColumn].toString();
+                      } else {
+                        displayText = 'Ürün';
+                      }
+                      return displayText;
+                    },
+                    dropdownDecoratorProps: const DropDownDecoratorProps(
+                      dropdownSearchDecoration: InputDecoration(
+                        hintText: 'Ürün Seçiniz',
+                        border: InputBorder.none,
                       ),
-                      child: const Text('Ekle'),
                     ),
-                  ],
+                    onChanged: (value) {
+                      if (value != null) {
+                        selectedProduct = value;
+                        controller.addProduct(value);
+                      }
+                    },
+                  ),
                 ),
                 
                 const SizedBox(height: 16),
@@ -398,29 +240,36 @@ class _CalculateScreenState extends State<CalculateScreen> {
                 // Seçilen Ürünler Listesi
                 Expanded(
                   flex: 2,
-                  child: selectedProducts.isEmpty
+                  child: Obx(() => controller.selectedProducts.isEmpty
                     ? const Center(child: Text('Henüz ürün seçilmedi.'))
                     : ListView.builder(
-                        itemCount: selectedProducts.length,
+                        itemCount: controller.selectedProducts.length,
                         itemBuilder: (context, index) {
-                          final product = selectedProducts[index];
+                          final product = controller.selectedProducts[index];
                           String displayTitle = '';
-                          if (codeColumn.isNotEmpty && nameColumn.isNotEmpty && 
-                              product.containsKey(codeColumn) && product.containsKey(nameColumn)) {
-                            displayTitle = '${product[codeColumn]} - ${product[nameColumn]}';
-                          } else if (codeColumn.isNotEmpty && product.containsKey(codeColumn)) {
-                            displayTitle = product[codeColumn].toString();
+                          if (controller.codeColumn.isNotEmpty && controller.nameColumn.isNotEmpty && 
+                              product.containsKey(controller.codeColumn) && product.containsKey(controller.nameColumn)) {
+                            displayTitle = '${product[controller.codeColumn]} - ${product[controller.nameColumn]}';
+                          } else if (controller.codeColumn.isNotEmpty && product.containsKey(controller.codeColumn)) {
+                            displayTitle = product[controller.codeColumn].toString();
                           } else {
                             displayTitle = 'Ürün ${index + 1}';
                           }
                           
                           String profilBoyuText = '';
                           String fiyatText = '';
-                          if (profilBoyuColumn.isNotEmpty && product.containsKey(profilBoyuColumn)) {
-                            profilBoyuText = 'Profil Boyu: ${product[profilBoyuColumn]}';
+                          String hesaplananTutarText = '';
+                          
+                          if (controller.profilBoyuColumn.isNotEmpty && product.containsKey(controller.profilBoyuColumn)) {
+                            profilBoyuText = 'Profil Boyu: ${product[controller.profilBoyuColumn]}';
                           }
-                          if (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) {
-                            fiyatText = 'Fiyat: ${product[fiyatColumn]} TL';
+                          
+                          if (controller.fiyatColumn.isNotEmpty && product.containsKey(controller.fiyatColumn)) {
+                            fiyatText = 'Fiyat: ${product[controller.fiyatColumn]} TL';
+                          }
+                          
+                          if (product.containsKey('hesaplananTutar')) {
+                            hesaplananTutarText = 'Tutar: ${product['hesaplananTutar'].toStringAsFixed(2)} TL';
                           }
                           
                           return Card(
@@ -440,13 +289,18 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                         ),
                                         if (profilBoyuText.isNotEmpty || fiyatText.isNotEmpty)
                                           Text('$profilBoyuText ${profilBoyuText.isNotEmpty && fiyatText.isNotEmpty ? " - " : ""} $fiyatText'),
+                                        if (hesaplananTutarText.isNotEmpty)
+                                          Text(
+                                            hesaplananTutarText, 
+                                            style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue),
+                                          ),
                                       ],
                                     ),
                                   ),
                                   Expanded(
                                     flex: 1,
                                     child: TextField(
-                                      controller: metreControllers[index],
+                                      controller: controller.metreControllers[index],
                                       decoration: const InputDecoration(
                                         labelText: 'Metre',
                                         border: OutlineInputBorder(),
@@ -455,24 +309,36 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                       inputFormatters: [
                                         FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                                       ],
+                                      onChanged: (value) {
+                                        // Metre değeri değiştiğinde fiyatı güncelle
+                                        if (value.isNotEmpty) {
+                                          // Boş değilse hesapla
+                                          controller.calculateTotalPrice();
+                                        } else {
+                                          // Boş ise 0 olarak ayarla ve hesapla
+                                          controller.metreControllers[index] = '0' as TextEditingController;
+                                          controller.calculateTotalPrice();
+                                        }
+                                      },
                                     ),
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _removeProduct(index),
+                                    onPressed: () => _showDeleteConfirmationDialog(index),
                                   ),
                                 ],
                               ),
                             ),
                           );
                         },
-                      ),
+                      )
+                  ),
                 ),
                 
                 const SizedBox(height: 16),
                 
                 // Toplam Tutar
-                Container(
+                Obx(() => Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.grey.shade200,
@@ -486,12 +352,12 @@ class _CalculateScreenState extends State<CalculateScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Text(
-                        '${toplamTutar.toStringAsFixed(2)} TL',
+                        '${controller.toplamTutar.value.toStringAsFixed(2)} TL',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],
                   ),
-                ),
+                )),
                 
                 const SizedBox(height: 16),
                 
@@ -500,7 +366,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                   children: [
                     Expanded(
                       child: TextField(
-                        controller: iskontoController,
+                        controller: controller.iskontoController,
                         decoration: const InputDecoration(
                           labelText: 'İskonto Giriniz (%)',
                           border: OutlineInputBorder(),
@@ -514,7 +380,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextField(
-                        controller: kdvController,
+                        controller: controller.kdvController,
                         decoration: const InputDecoration(
                           labelText: 'KDV Giriniz (%)',
                           border: OutlineInputBorder(),
@@ -530,8 +396,41 @@ class _CalculateScreenState extends State<CalculateScreen> {
                 
                 const SizedBox(height: 16),
                 
+                // İskonto ve KDV Detayları
+                Obx(() => Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'İskonto: ${controller.iskontoTutar.value.toStringAsFixed(2)} TL',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            'KDV: ${controller.kdvTutar.value.toStringAsFixed(2)} TL',
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'Ara Tutar: ${(controller.toplamTutar.value - controller.iskontoTutar.value).toStringAsFixed(2)} TL',
+                        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                )),
+                
+                const SizedBox(height: 16),
+                
                 // Net Tutar
-                Container(
+                Obx(() => Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade100,
@@ -546,15 +445,16 @@ class _CalculateScreenState extends State<CalculateScreen> {
                         style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Text(
-                        '${netTutar.toStringAsFixed(2)} TL',
+                        '${controller.netTutar.value.toStringAsFixed(2)} TL',
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                     ],
                   ),
-                ),
+                )),
               ],
             ),
-          ),
+          )
+      ),
     );
   }
 }

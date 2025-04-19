@@ -36,7 +36,9 @@ dependencies:
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
   excel: ^4.0.0  # Excel dosyalarını işlemek için
-  file_picker: ^6.1.1  # Dosya seçmek için
+  dropdown_search: ^5.0.6  # Arama özellikli dropdown için
+  get: ^4.6.6
+  #file_picker: ^6.1.1  # Dosya seçmek için
   path_provider: ^2.1.2  # Dosya yollarını yönetmek için
 
 dev_dependencies:
