@@ -219,626 +219,632 @@ class _CalculateScreenState extends State<CalculateScreen> {
             ),
           )
         : SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                  decoration: BoxDecoration(
-                    color: primaryColor,
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(24),
-                      bottomRight: Radius.circular(24),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.3),
-                        spreadRadius: 1,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
+            child: SingleChildScrollView(
+              child: Container(
+                width: MediaQuery.of(context).size.width, 
+                height: MediaQuery.of(context).size. height * 0.85,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(24),
+                          bottomRight: Radius.circular(24),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.grey.withOpacity(0.3),
+                            spreadRadius: 1,
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Ürün Seçimi',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                      
-                      // 59 nolu excel için grup seçim alanı
-                      if (widget.buttonType == '59 nolu') ...[
-                        const SizedBox(height: 8),
-                        const Text(
-                          'Grup Seçimi',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                spreadRadius: 0,
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Obx(() => DropdownButtonHideUnderline(
-                            child: ButtonTheme(
-                              alignedDropdown: true,
-                              child: DropdownButton<String>(
-                                value: controller.selectedGroup.value,
-                                isExpanded: true,
-                                icon: const Icon(Icons.category),
-                                style: TextStyle(
-                                  color: primaryColor,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                items: controller.groupDefinitions.keys
-                                    .map<DropdownMenuItem<String>>((String value) {
-                                  return DropdownMenuItem<String>(
-                                    value: value,
-                                    child: Text(value),
-                                  );
-                                }).toList(),
-                                onChanged: (String? newValue) {
-                                  if (newValue != null) {
-                                    controller.filterByGroup(newValue);
-                                  }
-                                },
-                              ),
-                            ),
-                          )),
-                        ),
-                      ],
-                      
-                      const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              spreadRadius: 0,
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: DropdownSearch<Map<String, dynamic>>(
-                          popupProps: PopupProps.menu(
-                            showSearchBox: true,
-                            searchFieldProps: TextFieldProps(
-                              decoration: InputDecoration(
-                                labelText: 'Ürün Ara',
-                                prefixIcon: const Icon(Icons.search),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                  borderSide: BorderSide(color: primaryColor, width: 2),
-                                ),
-                              ),
-                            ),
-                            constraints: BoxConstraints(
-                              maxHeight: MediaQuery.of(context).size.height * 0.6,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Ürün Seçimi',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
                             ),
                           ),
-                          items: widget.buttonType == '59 nolu' 
-                              ? controller.filteredExcelData
-                              : controller.excelData,
-                          itemAsString: (item) {
-                            if (item == null) return '';
-                            String displayText = '';
-                            if (controller.codeColumn.isNotEmpty && controller.nameColumn.isNotEmpty && 
-                                item.containsKey(controller.codeColumn) && item.containsKey(controller.nameColumn)) {
-                              displayText = '${item[controller.codeColumn]} - ${item[controller.nameColumn]}';
-                            } else if (controller.codeColumn.isNotEmpty && item.containsKey(controller.codeColumn)) {
-                              displayText = item[controller.codeColumn].toString();
-                            } else {
-                              displayText = 'Ürün';
-                            }
-                            return displayText;
-                          },
-                          dropdownDecoratorProps: DropDownDecoratorProps(
-                            dropdownSearchDecoration: InputDecoration(
-                              hintText: 'Ürün Seçiniz',
-                              hintStyle: TextStyle(color: Colors.grey.shade600),
-                              border: InputBorder.none,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                          onChanged: (value) {
-                            if (value != null) {
-                              selectedProduct = value;
-                              controller.addProduct(value);
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Seçilen Ürünler',
+                          
+                          // 59 nolu excel için grup seçim alanı
+                          if (widget.buttonType == '59 nolu') ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Grup Seçimi',
                               style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: primaryColor,
+                                color: Colors.white,
+                                fontSize: 14,
                               ),
                             ),
-                            Obx(() => controller.selectedProducts.isNotEmpty
-                              ? Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: primaryColor,
-                                    borderRadius: BorderRadius.circular(12),
+                            const SizedBox(height: 4),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.1),
+                                    spreadRadius: 0,
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
                                   ),
-                                  child: Text(
-                                    '${controller.selectedProducts.length}',
-                                    style: const TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
+                                ],
+                              ),
+                              child: Obx(() => DropdownButtonHideUnderline(
+                                child: ButtonTheme(
+                                  alignedDropdown: true,
+                                  child: DropdownButton<String>(
+                                    value: controller.selectedGroup.value,
+                                    isExpanded: true,
+                                    icon: const Icon(Icons.category),
+                                    style: TextStyle(
+                                      color: primaryColor,
+                                      fontWeight: FontWeight.w600,
                                     ),
+                                    items: controller.groupDefinitions.keys
+                                        .map<DropdownMenuItem<String>>((String value) {
+                                      return DropdownMenuItem<String>(
+                                        value: value,
+                                        child: Text(value),
+                                      );
+                                    }).toList(),
+                                    onChanged: (String? newValue) {
+                                      if (newValue != null) {
+                                        controller.filterByGroup(newValue);
+                                      }
+                                    },
                                   ),
-                                )
-                              : const SizedBox.shrink()
+                                ),
+                              )),
                             ),
                           ],
-                        ),
-                        
-                        const SizedBox(height: 8),
-                        
-                        Expanded(
-                          child: Obx(() => controller.selectedProducts.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.shopping_cart_outlined,
-                                      size: 48,
-                                      color: Colors.grey.shade400,
-                                    ),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Henüz ürün seçilmedi.',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade600,
-                                        fontSize: 16,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : ListView.builder(
-                                itemCount: controller.selectedProducts.length,
-                                itemBuilder: (context, index) {
-                                  final product = controller.selectedProducts[index];
-                                  String displayTitle = '';
-                                  if (controller.codeColumn.isNotEmpty && controller.nameColumn.isNotEmpty && 
-                                      product.containsKey(controller.codeColumn) && product.containsKey(controller.nameColumn)) {
-                                    displayTitle = '${product[controller.codeColumn]} - ${product[controller.nameColumn]}';
-                                  } else if (controller.codeColumn.isNotEmpty && product.containsKey(controller.codeColumn)) {
-                                    displayTitle = product[controller.codeColumn].toString();
-                                  } else {
-                                    displayTitle = 'Ürün ${index + 1}';
-                                  }
-                                  
-                                  String profilBoyuText = '';
-                                  String fiyatText = '';
-                                  String hesaplananTutarText = '';
-                                  
-                                  if (product.containsKey('hesaplananTutar')) {
-                                    hesaplananTutarText = '${product['hesaplananTutar'].toStringAsFixed(2)} TL';
-                                  }
-                                  
-                                  return Card(
-                                    margin: const EdgeInsets.only(bottom: 12),
-                                    elevation: 2,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      side: BorderSide(
-                                        color: product.containsKey('hesaplananTutar') 
-                                            ? primaryColor.withOpacity(0.3)
-                                            : Colors.transparent,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Row(
-                                        crossAxisAlignment: CrossAxisAlignment.center,
-                                        children: [
-                                          Expanded(
-                                            flex: 3,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  displayTitle,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 15,
-                                                  ),
-                                                ),
-                                                if (profilBoyuText.isNotEmpty || fiyatText.isNotEmpty)
-                                                  Padding(
-                                                    padding: const EdgeInsets.only(top: 4),
-                                                    child: Text(
-                                                      '$profilBoyuText ${profilBoyuText.isNotEmpty && fiyatText.isNotEmpty ? " - " : ""} $fiyatText',
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        color: Colors.grey.shade700,
-                                                      ),
-                                                    ),
-                                                  ),
-                                                if (hesaplananTutarText.isNotEmpty)
-                                                  Padding(
-                                                    padding: const EdgeInsets.only(top: 6),
-                                                    child: Container(
-                                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                                      decoration: BoxDecoration(
-                                                        color: secondaryColor,
-                                                        borderRadius: BorderRadius.circular(6),
-                                                      ),
-                                                      child: Text(
-                                                        hesaplananTutarText, 
-                                                        style: TextStyle(
-                                                          fontWeight: FontWeight.bold,
-                                                          color: primaryColor,
-                                                          fontSize: 14,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            flex: 1,
-                                            child: SizedBox(
-                                              height: 50,
-                                              child: TextField(
-                                                controller: controller.metreControllers[index],
-                                                decoration: InputDecoration(
-                                                  labelText: 'Metre',
-                                                  labelStyle: TextStyle(
-                                                    color: Colors.grey.shade600,
-                                                    fontSize: 14,
-                                                  ),
-                                                  border: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.circular(8),
-                                                  ),
-                                                  focusedBorder: OutlineInputBorder(
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    borderSide: BorderSide(color: primaryColor, width: 2),
-                                                  ),
-                                                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                                ),
-                                                style: const TextStyle(fontSize: 14),
-                                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                                                ],
-                                                onChanged: (value) {
-                                                  if (value.isNotEmpty) {
-                                                    controller.calculateTotalPrice();
-                                                  } else {
-                                                    controller.metreControllers[index] = '0' as TextEditingController;
-                                                    controller.calculateTotalPrice();
-                                                  }
-                                                },
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Material(
-                                            color: Colors.red.shade50,
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: InkWell(
-                                              borderRadius: BorderRadius.circular(8),
-                                              onTap: () => _showDeleteConfirmationDialog(index),
-                                              child: Container(
-                                                padding: const EdgeInsets.all(10),
-                                                child: Icon(
-                                                  Icons.delete_outline,
-                                                  color: Colors.red.shade700,
-                                                  size: 22,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                },
-                              )
-                          ),
-                        ),
-                        
-                        const SizedBox(height: 16),
-                        
-                        Obx(() => Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: secondaryColor,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: primaryColor.withOpacity(0.3),
-                              width: 1,
-                            ),
-                          ),
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(12),
-                            onTap: () {
-                              setState(() {
-                                _isPanelExpanded = !_isPanelExpanded;
-                              });
-                            },
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      _isPanelExpanded 
-                                          ? Icons.keyboard_arrow_up
-                                          : Icons.keyboard_arrow_down,
-                                      color: primaryColor,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Toplam: ${controller.toplamTutar.value.toStringAsFixed(2)} TL',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16,
-                                        color: primaryColor,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: primaryColor,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Text(
-                                    'Net: ${controller.netTutar.value.toStringAsFixed(2)} TL',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )),
-                        
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          height: _isPanelExpanded ? null : 0,
-                          curve: Curves.easeInOut,
-                          child: _isPanelExpanded ? Container(
-                            margin: const EdgeInsets.only(top: 8),
-                            padding: const EdgeInsets.all(16),
+                          
+                          const SizedBox(height: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
                               color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(12),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.grey.withOpacity(0.2),
-                                  spreadRadius: 1,
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 3),
+                                  color: Colors.black.withOpacity(0.1),
+                                  spreadRadius: 0,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: TextField(
-                                        controller: controller.iskontoController,
-                                        decoration: InputDecoration(
-                                          labelText: 'İskonto Oranı (%)',
-                                          labelStyle: TextStyle(color: Colors.grey.shade700),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
-                                            borderSide: BorderSide(color: primaryColor, width: 2),
-                                          ),
-                                          prefixIcon: const Icon(Icons.percent),
-                                        ),
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                                        ],
-                                        onChanged: (_) => controller.calculateTotalPrice(),
-                                      ),
+                            child: DropdownSearch<Map<String, dynamic>>(
+                              popupProps: PopupProps.menu(
+                                showSearchBox: true,
+                                searchFieldProps: TextFieldProps(
+                                  decoration: InputDecoration(
+                                    labelText: 'Ürün Ara',
+                                    prefixIcon: const Icon(Icons.search),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
-                                    const SizedBox(width: 16),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: controller.kdvController,
-                                        decoration: InputDecoration(
-                                          labelText: 'KDV Oranı (%)',
-                                          labelStyle: TextStyle(color: Colors.grey.shade700),
-                                          border: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
-                                          ),
-                                          focusedBorder: OutlineInputBorder(
-                                            borderRadius: BorderRadius.circular(10),
-                                            borderSide: BorderSide(color: primaryColor, width: 2),
-                                          ),
-                                          prefixIcon: const Icon(Icons.attach_money),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: BorderSide(color: primaryColor, width: 2),
+                                    ),
+                                  ),
+                                ),
+                                constraints: BoxConstraints(
+                                  maxHeight: MediaQuery.of(context).size.height * 0.6,
+                                ),
+                              ),
+                              items: widget.buttonType == '59 nolu' 
+                                  ? controller.filteredExcelData
+                                  : controller.excelData,
+                              itemAsString: (item) {
+                                if (item == null) return '';
+                                String displayText = '';
+                                if (controller.codeColumn.isNotEmpty && controller.nameColumn.isNotEmpty && 
+                                    item.containsKey(controller.codeColumn) && item.containsKey(controller.nameColumn)) {
+                                  displayText = '${item[controller.codeColumn]} - ${item[controller.nameColumn]}';
+                                } else if (controller.codeColumn.isNotEmpty && item.containsKey(controller.codeColumn)) {
+                                  displayText = item[controller.codeColumn].toString();
+                                } else {
+                                  displayText = 'Ürün';
+                                }
+                                return displayText;
+                              },
+                              dropdownDecoratorProps: DropDownDecoratorProps(
+                                dropdownSearchDecoration: InputDecoration(
+                                  hintText: 'Ürün Seçiniz',
+                                  hintStyle: TextStyle(color: Colors.grey.shade600),
+                                  border: InputBorder.none,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                              ),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  selectedProduct = value;
+                                  controller.addProduct(value);
+                                }
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Seçilen Ürünler',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: primaryColor,
+                                  ),
+                                ),
+                                Obx(() => controller.selectedProducts.isNotEmpty
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '${controller.selectedProducts.length}',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
                                         ),
-                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                        inputFormatters: [
-                                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                                        ],
-                                        onChanged: (_) => controller.calculateTotalPrice(),
+                                      ),
+                                    )
+                                  : const SizedBox.shrink()
+                                ),
+                              ],
+                            ),
+                            
+                            const SizedBox(height: 8),
+                            
+                            Expanded(
+                              child: Obx(() => controller.selectedProducts.isEmpty
+                                ? Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.shopping_cart_outlined,
+                                          size: 48,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'Henüz ürün seçilmedi.',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  )
+                                : ListView.builder(
+                                    itemCount: controller.selectedProducts.length,
+                                    itemBuilder: (context, index) {
+                                      final product = controller.selectedProducts[index];
+                                      String displayTitle = '';
+                                      if (controller.codeColumn.isNotEmpty && controller.nameColumn.isNotEmpty && 
+                                          product.containsKey(controller.codeColumn) && product.containsKey(controller.nameColumn)) {
+                                        displayTitle = '${product[controller.codeColumn]} - ${product[controller.nameColumn]}';
+                                      } else if (controller.codeColumn.isNotEmpty && product.containsKey(controller.codeColumn)) {
+                                        displayTitle = product[controller.codeColumn].toString();
+                                      } else {
+                                        displayTitle = 'Ürün ${index + 1}';
+                                      }
+                                      
+                                      String profilBoyuText = '';
+                                      String fiyatText = '';
+                                      String hesaplananTutarText = '';
+                                      
+                                      if (product.containsKey('hesaplananTutar')) {
+                                        hesaplananTutarText = '${product['hesaplananTutar'].toStringAsFixed(2)} TL';
+                                      }
+                                      
+                                      return Card(
+                                        margin: const EdgeInsets.only(bottom: 12),
+                                        elevation: 2,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          side: BorderSide(
+                                            color: product.containsKey('hesaplananTutar') 
+                                                ? primaryColor.withOpacity(0.3)
+                                                : Colors.transparent,
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            children: [
+                                              Expanded(
+                                                flex: 2,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      displayTitle,
+                                                      style: const TextStyle(
+                                                        fontWeight: FontWeight.bold,
+                                                        fontSize: 15,
+                                                      ),
+                                                    ),
+                                                    if (profilBoyuText.isNotEmpty || fiyatText.isNotEmpty)
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(top: 4),
+                                                        child: Text(
+                                                          '$profilBoyuText ${profilBoyuText.isNotEmpty && fiyatText.isNotEmpty ? " - " : ""} $fiyatText',
+                                                          style: TextStyle(
+                                                            fontSize: 13,
+                                                            color: Colors.grey.shade700,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    if (hesaplananTutarText.isNotEmpty)
+                                                      Padding(
+                                                        padding: const EdgeInsets.only(top: 6),
+                                                        child: Container(
+                                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                          decoration: BoxDecoration(
+                                                            color: secondaryColor,
+                                                            borderRadius: BorderRadius.circular(6),
+                                                          ),
+                                                          child: Text(
+                                                            hesaplananTutarText, 
+                                                            style: TextStyle(
+                                                              fontWeight: FontWeight.bold,
+                                                              color: primaryColor,
+                                                              fontSize: 14,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                flex: 1,
+                                                child: SizedBox(
+                                                  height: 50,
+                                                  child: TextField(
+                                                    controller: controller.metreControllers[index],
+                                                    decoration: InputDecoration(
+                                                      labelText: 'Metre',
+                                                      labelStyle: TextStyle(
+                                                        color: Colors.grey.shade600,
+                                                        fontSize: 14,
+                                                      ),
+                                                      border: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                      ),
+                                                      focusedBorder: OutlineInputBorder(
+                                                        borderRadius: BorderRadius.circular(8),
+                                                        borderSide: BorderSide(color: primaryColor, width: 2),
+                                                      ),
+                                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                                    ),
+                                                    style: const TextStyle(fontSize: 14),
+                                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                                    inputFormatters: [
+                                                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                                                    ],
+                                                    onChanged: (value) {
+                                                      if (value.isNotEmpty) {
+                                                        controller.calculateTotalPrice();
+                                                      } else {
+                                                        controller.metreControllers[index] = '0' as TextEditingController;
+                                                        controller.calculateTotalPrice();
+                                                      }
+                                                    },
+                                                  ),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Material(
+                                                color: Colors.red.shade50,
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: InkWell(
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  onTap: () => _showDeleteConfirmationDialog(index),
+                                                  child: Container(
+                                                    padding: const EdgeInsets.all(10),
+                                                    child: Icon(
+                                                      Icons.delete_outline,
+                                                      color: Colors.red.shade700,
+                                                      size: 22,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  )
+                              ),
+                            ),
+                            
+                            const SizedBox(height: 16),
+                            
+                            Obx(() => Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: secondaryColor,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: primaryColor.withOpacity(0.3),
+                                  width: 1,
+                                ),
+                              ),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
+                                  setState(() {
+                                    _isPanelExpanded = !_isPanelExpanded;
+                                  });
+                                },
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          _isPanelExpanded 
+                                              ? Icons.keyboard_arrow_up
+                                              : Icons.keyboard_arrow_down,
+                                          color: primaryColor,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'Toplam: ${controller.toplamTutar.value.toStringAsFixed(2)} TL',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                            color: primaryColor,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                      decoration: BoxDecoration(
+                                        color: primaryColor,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        'Net: ${controller.netTutar.value.toStringAsFixed(2)} TL',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 16,
+                                          color: Colors.white,
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                
-                                const SizedBox(height: 16),
-                                
-                                Obx(() => Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(10),
-                                    border: Border.all(color: Colors.grey.shade300),
-                                  ),
-                                  child: Column(
-                                    children: [
-                                      Row(
+                              ),
+                            )),
+                            
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 300),
+                              height: _isPanelExpanded ? null : 0,
+                              curve: Curves.easeInOut,
+                              child: _isPanelExpanded ? Container(
+                                margin: const EdgeInsets.only(top: 8),
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.2),
+                                      spreadRadius: 1,
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: TextField(
+                                            controller: controller.iskontoController,
+                                            decoration: InputDecoration(
+                                              labelText: 'İskonto Oranı (%)',
+                                              labelStyle: TextStyle(color: Colors.grey.shade700),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                                borderSide: BorderSide(color: primaryColor, width: 2),
+                                              ),
+                                              prefixIcon: const Icon(Icons.percent),
+                                            ),
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                                            ],
+                                            onChanged: (_) => controller.calculateTotalPrice(),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                        Expanded(
+                                          child: TextField(
+                                            controller: controller.kdvController,
+                                            decoration: InputDecoration(
+                                              labelText: 'KDV Oranı (%)',
+                                              labelStyle: TextStyle(color: Colors.grey.shade700),
+                                              border: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                              ),
+                                              focusedBorder: OutlineInputBorder(
+                                                borderRadius: BorderRadius.circular(10),
+                                                borderSide: BorderSide(color: primaryColor, width: 2),
+                                              ),
+                                              prefixIcon: const Icon(Icons.attach_money),
+                                            ),
+                                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                            inputFormatters: [
+                                              FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                                            ],
+                                            onChanged: (_) => controller.calculateTotalPrice(),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    
+                                    const SizedBox(height: 16),
+                                    
+                                    Obx(() => Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade50,
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(color: Colors.grey.shade300),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'İskonto Tutarı:',
+                                                style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                                              ),
+                                              Text(
+                                                '${controller.iskontoTutar.value.toStringAsFixed(2)} TL',
+                                                style: TextStyle(
+                                                  fontSize: 14, 
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.red.shade700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const Divider(height: 16),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'Ara Tutar:',
+                                                style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                                              ),
+                                              Text(
+                                                '${(controller.toplamTutar.value - controller.iskontoTutar.value).toStringAsFixed(2)} TL',
+                                                style: const TextStyle(
+                                                  fontSize: 14, 
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const Divider(height: 16),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Text(
+                                                'KDV Tutarı:',
+                                                style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
+                                              ),
+                                              Text(
+                                                '${controller.kdvTutar.value.toStringAsFixed(2)} TL',
+                                                style: TextStyle(
+                                                  fontSize: 14, 
+                                                  fontWeight: FontWeight.w500,
+                                                  color: Colors.green.shade700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    )),
+                                    
+                                    const SizedBox(height: 16),
+                                    
+                                    Obx(() => Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(
+                                        color: secondaryColor,
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: primaryColor.withOpacity(0.2),
+                                            spreadRadius: 1,
+                                            blurRadius: 4,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
-                                            'İskonto Tutarı:',
-                                            style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
-                                          ),
-                                          Text(
-                                            '${controller.iskontoTutar.value.toStringAsFixed(2)} TL',
+                                            'NET TUTAR',
                                             style: TextStyle(
-                                              fontSize: 14, 
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.red.shade700,
+                                              fontWeight: FontWeight.bold, 
+                                              fontSize: 18,
+                                              color: primaryColor,
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: primaryColor,
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Text(
+                                              '${controller.netTutar.value.toStringAsFixed(2)} TL',
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.bold, 
+                                                fontSize: 18,
+                                                color: Colors.white,
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      const Divider(height: 16),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'Ara Tutar:',
-                                            style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
-                                          ),
-                                          Text(
-                                            '${(controller.toplamTutar.value - controller.iskontoTutar.value).toStringAsFixed(2)} TL',
-                                            style: const TextStyle(
-                                              fontSize: 14, 
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const Divider(height: 16),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Text(
-                                            'KDV Tutarı:',
-                                            style: TextStyle(fontSize: 14, color: Colors.grey.shade800),
-                                          ),
-                                          Text(
-                                            '${controller.kdvTutar.value.toStringAsFixed(2)} TL',
-                                            style: TextStyle(
-                                              fontSize: 14, 
-                                              fontWeight: FontWeight.w500,
-                                              color: Colors.green.shade700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                                
-                                const SizedBox(height: 16),
-                                
-                                Obx(() => Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                  decoration: BoxDecoration(
-                                    color: secondaryColor,
-                                    borderRadius: BorderRadius.circular(10),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: primaryColor.withOpacity(0.2),
-                                        spreadRadius: 1,
-                                        blurRadius: 4,
-                                        offset: const Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'NET TUTAR',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold, 
-                                          fontSize: 18,
-                                          color: primaryColor,
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                        decoration: BoxDecoration(
-                                          color: primaryColor,
-                                          borderRadius: BorderRadius.circular(8),
-                                        ),
-                                        child: Text(
-                                          '${controller.netTutar.value.toStringAsFixed(2)} TL',
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.bold, 
-                                            fontSize: 18,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )),
-                              ],
+                                    )),
+                                  ],
+                                ),
+                              ) : const SizedBox(),
                             ),
-                          ) : const SizedBox(),
+                            
+                          ],
                         ),
-                        
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
           )
       ),
