@@ -260,13 +260,9 @@ class _CalculateScreenState extends State<CalculateScreen> {
                           String fiyatText = '';
                           String hesaplananTutarText = '';
                           
-                          if (controller.profilBoyuColumn.isNotEmpty && product.containsKey(controller.profilBoyuColumn)) {
-                            profilBoyuText = 'Profil Boyu: ${product[controller.profilBoyuColumn]}';
-                          }
                           
-                          if (controller.fiyatColumn.isNotEmpty && product.containsKey(controller.fiyatColumn)) {
-                            fiyatText = 'Fiyat: ${product[controller.fiyatColumn]} TL';
-                          }
+                          
+                          
                           
                           if (product.containsKey('hesaplananTutar')) {
                             hesaplananTutarText = 'Tutar: ${product['hesaplananTutar'].toStringAsFixed(2)} TL';
@@ -275,7 +271,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: Padding(
-                              padding: const EdgeInsets.all(8.0),
+                              padding: const EdgeInsets.all(4.0),
                               child: Row(
                                 children: [
                                   Expanded(
