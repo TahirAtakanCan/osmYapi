@@ -2,27 +2,42 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class CalculateController extends GetxController {
-  // Excel veri listesi
-  RxList<Map<String, dynamic>> excelData = <Map<String, dynamic>>[].obs;
   
-  // Seçilen ürünler listesi
+
+  RxList<Map<String, dynamic>> excelData = <Map<String, dynamic>>[].obs;
+  RxList<Map<String, dynamic>> filteredExcelData = <Map<String, dynamic>>[].obs;
+  RxString selectedGroup = "Tüm Ürünler".obs;
+
+  
+  final Map<String, Map<String, dynamic>> groupDefinitions = {
+    "Tüm Ürünler": {"startRow": 0, "endRow": -1},
+    "60 Serisi Ana Profiller": {"startRow": 0, "endRow": 23},
+    "60 3 Odacık Serisi Ana Profiller": {"startRow": 24, "endRow": 36},
+    "70 Süper Seri Profiller": {"startRow": 37, "endRow": 62},
+    "80 Seri Profiller": {"startRow": 63, "endRow": 86},
+    "Sürme Serisi Profiller": {"startRow": 87, "endRow": 122},
+    "Yalıtımlı Sürme Serisi": {"startRow": 123, "endRow": 144},
+    "Yardımcı Profiller": {"startRow": 145, "endRow": 185},
+  };
+  
+  
   RxList<Map<String, dynamic>> selectedProducts = <Map<String, dynamic>>[].obs;
   
-  // Metinlerden tutarlar
+  
   RxDouble toplamTutar = 0.0.obs;
   RxDouble netTutar = 0.0.obs;
   RxDouble iskontoTutar = 0.0.obs;
   RxDouble kdvTutar = 0.0.obs;
   
-  // Controller'lar
+  
   final iskontoController = TextEditingController(text: '0');
   final kdvController = TextEditingController(text: '20');
   final Map<int, TextEditingController> metreControllers = {};
   
-  // Yükleniyor durumu
+  
   RxBool isLoading = true.obs;
   
-  // Dinamik sütun adları
+  
   String codeColumn = '';
   String nameColumn = '';
   String profilBoyuColumn = '';
@@ -45,6 +60,35 @@ class CalculateController extends GetxController {
     kdvController.dispose();
     metreControllers.forEach((_, controller) => controller.dispose());
     super.onClose();
+  }
+
+  
+  void filterByGroup(String groupName) {
+    selectedGroup.value = groupName;
+    
+    if (groupName == "Tüm Ürünler") {
+      filteredExcelData.assignAll(excelData);
+      return;
+    }
+    
+    var groupInfo = groupDefinitions[groupName];
+    if (groupInfo != null) {
+      int startRow = groupInfo["startRow"] as int;
+      int endRow = groupInfo["endRow"] as int;
+      
+      if (endRow == -1) {
+        endRow = excelData.length - 1;
+      }
+      
+      List<Map<String, dynamic>> filtered = [];
+      for (int i = 0; i < excelData.length; i++) {
+        if (i >= startRow && i <= endRow) {
+          filtered.add(excelData[i]);
+        }
+      }
+      
+      filteredExcelData.assignAll(filtered);
+    }
   }
 
   // Ürün ekleme fonksiyonu
@@ -119,7 +163,7 @@ class CalculateController extends GetxController {
         // Eğer fiyat sütunu bulunabilmişse hesapla
         if (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) {
           // Metre değerini ürün fiyatı ile çarp ve toplama ekle
-          double metreFiyati = double.parse(product[fiyatColumn]);
+          double metreFiyati = double.parse(product[fiyatColumn].toString());
           double urunTutari = metreFiyati * metre;
           total += urunTutari;
           
@@ -249,6 +293,7 @@ class CalculateController extends GetxController {
   // Excel verisini ayarla
   void setExcelData(List<Map<String, dynamic>> data) {
     excelData.assignAll(data);
+    filteredExcelData.assignAll(data); // Başlangıçta tüm verileri filtreli veriler olarak göster
     setColumnNames();
     isLoading.value = false;
   }

@@ -101,6 +101,11 @@ class _CalculateScreenState extends State<CalculateScreen> {
       
       controller.setExcelData(tempData);
       
+      // 59 nolu excel için varsayılan grubu ayarla
+      if (widget.buttonType == '59 nolu') {
+        controller.filterByGroup("Tüm Ürünler");
+      }
+      
     } catch (e) {
       print('Excel veri okuma hatası: $e');
       controller.isLoading.value = false;
@@ -245,6 +250,60 @@ class _CalculateScreenState extends State<CalculateScreen> {
                           fontSize: 16,
                         ),
                       ),
+                      
+                      // 59 nolu excel için grup seçim alanı
+                      if (widget.buttonType == '59 nolu') ...[
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Grup Seçimi',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                spreadRadius: 0,
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Obx(() => DropdownButtonHideUnderline(
+                            child: ButtonTheme(
+                              alignedDropdown: true,
+                              child: DropdownButton<String>(
+                                value: controller.selectedGroup.value,
+                                isExpanded: true,
+                                icon: const Icon(Icons.category),
+                                style: TextStyle(
+                                  color: primaryColor,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                items: controller.groupDefinitions.keys
+                                    .map<DropdownMenuItem<String>>((String value) {
+                                  return DropdownMenuItem<String>(
+                                    value: value,
+                                    child: Text(value),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  if (newValue != null) {
+                                    controller.filterByGroup(newValue);
+                                  }
+                                },
+                              ),
+                            ),
+                          )),
+                        ),
+                      ],
+                      
                       const SizedBox(height: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -280,7 +339,9 @@ class _CalculateScreenState extends State<CalculateScreen> {
                               maxHeight: MediaQuery.of(context).size.height * 0.6,
                             ),
                           ),
-                          items: controller.excelData,
+                          items: widget.buttonType == '59 nolu' 
+                              ? controller.filteredExcelData
+                              : controller.excelData,
                           itemAsString: (item) {
                             if (item == null) return '';
                             String displayText = '';
