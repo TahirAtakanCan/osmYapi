@@ -16,7 +16,7 @@ class CalculateController extends GetxController {
   
   // Controller'lar
   final iskontoController = TextEditingController(text: '0');
-  final kdvController = TextEditingController(text: '18');
+  final kdvController = TextEditingController(text: '20');
   final Map<int, TextEditingController> metreControllers = {};
   
   // Yükleniyor durumu
@@ -141,11 +141,16 @@ class CalculateController extends GetxController {
   // Net tutarı hesaplama fonksiyonu
   void _calculateNetTutar() {
     final iskonto = double.tryParse(iskontoController.text) ?? 0.0;
-    final kdv = double.tryParse(kdvController.text) ?? 18.0;
+    
+    // KDV alanı boşsa veya geçersizse KDV hesaplanmayacak
+    final kdvText = kdvController.text.trim();
+    final double? kdv = kdvText.isEmpty ? null : double.tryParse(kdvText);
     
     final iskontoMiktar = toplamTutar.value * iskonto / 100;
     final aratutar = toplamTutar.value - iskontoMiktar;
-    final kdvMiktar = aratutar * kdv / 100;
+    
+    // KDV değeri varsa hesapla, yoksa 0 olarak ayarla
+    final kdvMiktar = kdv != null ? aratutar * kdv / 100 : 0.0;
     
     iskontoTutar.value = iskontoMiktar;
     kdvTutar.value = kdvMiktar;
