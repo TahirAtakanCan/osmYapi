@@ -24,6 +24,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
   void initState() {
     super.initState();
     controller = Get.put(CalculateController(), tag: widget.buttonType);
+    
+    controller.setExcelType(widget.buttonType);
     _loadExcelData();
   }
 
@@ -833,6 +835,45 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                         ],
                                       ),
                                     )),
+                                    
+                                    const SizedBox(height: 16),
+                                    
+                                    if (controller.selectedProducts.length >= 3)
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: ElevatedButton.icon(
+                                          onPressed: () async {
+                                            await controller.saveCalculation();
+                                             
+                                            Get.snackbar(
+                                              'Başarılı',
+                                              'Hesaplama kaydedildi',
+                                              snackPosition: SnackPosition.BOTTOM,
+                                              backgroundColor: Colors.green.shade100,
+                                              colorText: Colors.green.shade800,
+                                              borderRadius: 10,
+                                              margin: const EdgeInsets.all(15),
+                                              duration: const Duration(seconds: 2),
+                                            );
+                                          },
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: Colors.green.shade600,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(vertical: 12),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(10),
+                                            ),
+                                          ),
+                                          icon: const Icon(Icons.save),
+                                          label: const Text(
+                                            'Hesaplamayı Kaydet',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 16,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                   ],
                                 ),
                               ) : const SizedBox(),

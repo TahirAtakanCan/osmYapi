@@ -1,8 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+
+// Hesaplama geçmişini saklamak için model sınıfı
+class CalculationHistory {
+  final DateTime date;
+  final String excelType; // 58 nolu veya 59 nolu
+  final int productCount;
+  final double totalAmount;
+  final double netAmount;
+  final List<Map<String, dynamic>> products;
+
+  CalculationHistory({
+    required this.date,
+    required this.excelType,
+    required this.productCount,
+    required this.totalAmount,
+    required this.netAmount,
+    required this.products,
+  });
+
+  // JSON'a çevirme
+  Map<String, dynamic> toJson() {
+    return {
+      'date': date.toIso8601String(),
+      'excelType': excelType,
+      'productCount': productCount,
+      'totalAmount': totalAmount,
+      'netAmount': netAmount,
+      'products': products,
+    };
+  }
+
+  // JSON'dan oluşturma
+  factory CalculationHistory.fromJson(Map<String, dynamic> json) {
+    return CalculationHistory(
+      date: DateTime.parse(json['date']),
+      excelType: json['excelType'],
+      productCount: json['productCount'],
+      totalAmount: json['totalAmount'],
+      netAmount: json['netAmount'],
+      products: List<Map<String, dynamic>>.from(json['products']),
+    );
+  }
+}
 
 class CalculateController extends GetxController {
+  // Hesaplama geçmişi
+  static RxList<CalculationHistory> calculationHistory = <CalculationHistory>[].obs;
   
+  // En fazla saklanacak geçmiş sayısı
+  static const int maxHistoryCount = 10;
+  
+  // Excel dosya tipi (58 nolu, 59 nolu)
+  String excelType = '';
 
   RxList<Map<String, dynamic>> excelData = <Map<String, dynamic>>[].obs;
   RxList<Map<String, dynamic>> filteredExcelData = <Map<String, dynamic>>[].obs;
@@ -294,5 +346,64 @@ class CalculateController extends GetxController {
     filteredExcelData.assignAll(data); // Başlangıçta tüm verileri filtreli veriler olarak göster
     setColumnNames();
     isLoading.value = false;
+  }
+  
+  // Excel dosya tipini ayarla (58 nolu, 59 nolu)
+  void setExcelType(String type) {
+    excelType = type;
+  }
+  
+  // Hesaplamayı kaydet
+  Future<void> saveCalculation() async {
+    // Eğer en az 3 ürün eklenmişse kaydet
+    if (selectedProducts.length >= 3) {
+      final calculation = CalculationHistory(
+        date: DateTime.now(),
+        excelType: excelType,
+        productCount: selectedProducts.length,
+        totalAmount: toplamTutar.value,
+        netAmount: netTutar.value,
+        products: selectedProducts.map((p) => Map<String, dynamic>.from(p)).toList(),
+      );
+      
+      // Geçmişe ekle
+      calculationHistory.insert(0, calculation);
+      
+      // Maksimum 10 kayıt tut
+      if (calculationHistory.length > maxHistoryCount) {
+        calculationHistory.removeRange(maxHistoryCount, calculationHistory.length);
+      }
+      
+      // Kalıcı depolama için kaydet
+      await saveHistoryToStorage();
+    }
+  }
+  
+  // Geçmişi kalıcı depolamaya kaydet
+  static Future<void> saveHistoryToStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyJsonList = calculationHistory.map((calc) => calc.toJson()).toList();
+      await prefs.setString('calculation_history', jsonEncode(historyJsonList));
+    } catch (e) {
+      print('Hesaplama geçmişi kaydedilemedi: $e');
+    }
+  }
+  
+  // Geçmişi kalıcı depolamadan yükle
+  static Future<void> loadHistoryFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final historyJson = prefs.getString('calculation_history');
+      
+      if (historyJson != null && historyJson.isNotEmpty) {
+        final List<dynamic> jsonList = jsonDecode(historyJson);
+        calculationHistory.value = jsonList
+            .map((json) => CalculationHistory.fromJson(json))
+            .toList();
+      }
+    } catch (e) {
+      print('Hesaplama geçmişi yüklenemedi: $e');
+    }
   }
 }
