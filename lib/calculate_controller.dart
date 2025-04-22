@@ -96,9 +96,11 @@ class CalculateController extends GetxController {
     if (product != null) {
       // Ürünün zaten eklenip eklenmediğini kontrol et
       bool isAlreadyAdded = false;
-      if (codeColumn.isNotEmpty) {
+      if (codeColumn.isNotEmpty && nameColumn.isNotEmpty) {
         isAlreadyAdded = selectedProducts.any(
-          (existingProduct) => existingProduct[codeColumn] == product[codeColumn]
+          (existingProduct) => 
+            existingProduct[codeColumn] == product[codeColumn] && 
+            existingProduct[nameColumn] == product[nameColumn]
         );
       }
       
@@ -176,10 +178,6 @@ class CalculateController extends GetxController {
     
     toplamTutar.value = total;
     _calculateNetTutar();
-    print('Toplam Tutar: $total');
-    print('İskonto Tutar: ${iskontoTutar.value}');
-    print('KDV Tutar: ${kdvTutar.value}');
-    print('Net Tutar: ${netTutar.value}');
   }
 
   // Net tutarı hesaplama fonksiyonu
