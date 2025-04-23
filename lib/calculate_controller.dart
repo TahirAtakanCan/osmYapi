@@ -495,7 +495,7 @@ class CalculateController extends GetxController {
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Hesaplama Detayları', 
+                      pw.Text('Hesaplama Detaylari', 
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)
                       ),
                       pw.Text('Tarih: $formattedDate', style: const pw.TextStyle(fontSize: 12)),
@@ -505,12 +505,12 @@ class CalculateController extends GetxController {
                   pw.Row(
                     children: [
                       pw.Expanded(child: pw.Text('Excel Tipi: ${calculation.excelType}')),
-                      pw.Expanded(child: pw.Text('Ürün Sayısı: ${calculation.productCount}')),
+                      pw.Expanded(child: pw.Text('Urun Sayisi: ${calculation.productCount}')),
                     ],
                   ),
                   if (calculation.customerName.isNotEmpty) ...[
                     pw.SizedBox(height: 5),
-                    pw.Text('Müşteri/Kurum: ${calculation.customerName}',
+                    pw.Text('Musteri/Kurum: ${calculation.customerName}',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                   ],
@@ -521,7 +521,7 @@ class CalculateController extends GetxController {
             pw.SizedBox(height: 20),
             
             // Ürün Listesi Tablosu
-            pw.Text('Ürün Listesi', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Urun Listesi', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 10),
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey400),
@@ -539,11 +539,11 @@ class CalculateController extends GetxController {
                   children: [
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Ürün Kodu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Urun Kodu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Ürün Adı', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Urun Adi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
@@ -634,7 +634,7 @@ class CalculateController extends GetxController {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
-                    pw.Text('OSM Yapı - Tüm hakları saklıdır', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('OSM Yapi - Tum haklari saklidir', style: const pw.TextStyle(fontSize: 10)),
                   ],
                 ),
               ],
@@ -658,7 +658,7 @@ class CalculateController extends GetxController {
       if (directory == null) {
         Get.snackbar(
           'Hata',
-          'Dosya kaydetmek için uygun klasör bulunamadı',
+          'Dosya kaydetmek icin uygun klasor bulunamadi',
           snackPosition: SnackPosition.BOTTOM,
           backgroundColor: Colors.red.shade100,
           colorText: Colors.red.shade800,
@@ -671,7 +671,7 @@ class CalculateController extends GetxController {
       await file.writeAsBytes(await pdf.save());
       
       Get.snackbar(
-        'Başarılı',
+        'Basarili',
         'PDF indirildi: $fileName',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.green.shade100,
@@ -684,10 +684,10 @@ class CalculateController extends GetxController {
       
       return file;
     } catch (e) {
-      print('PDF oluşturma hatası: $e');
+      print('PDF olusturma hatasi: $e');
       Get.snackbar(
         'Hata',
-        'PDF oluşturulurken bir hata oluştu: $e',
+        'PDF olusturulurken bir hata olustu: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade100,
         colorText: Colors.red.shade800,
