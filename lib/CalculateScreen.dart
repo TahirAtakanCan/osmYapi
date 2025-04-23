@@ -180,6 +180,76 @@ class _CalculateScreenState extends State<CalculateScreen> {
     );
   }
 
+  Future<void> _showCustomerNamePopup(BuildContext context) async {
+    TextEditingController customerNameController = TextEditingController();
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Müşteri/Kurum Bilgisi',
+            style: TextStyle(
+              color: widget.buttonType == '58 nolu' ? Colors.blue.shade800 : Colors.red.shade700,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                TextField(
+                  controller: customerNameController,
+                  decoration: InputDecoration(
+                    labelText: 'Müşteri/Kurum Adı',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('İptal'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Kaydet'),
+              onPressed: () async {
+                Navigator.of(context).pop();
+                await controller.saveCalculation(customerNameController.text);
+                Get.snackbar(
+                  'Başarılı',
+                  'Hesaplama kaydedildi',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green.shade100,
+                  colorText: Colors.green.shade800,
+                  borderRadius: 10,
+                  margin: const EdgeInsets.all(15),
+                  duration: const Duration(seconds: 2),
+                );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final Color primaryColor = widget.buttonType == '58 nolu' 
@@ -842,19 +912,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                       SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton.icon(
-                                          onPressed: () async {
-                                            await controller.saveCalculation();
-                                             
-                                            Get.snackbar(
-                                              'Başarılı',
-                                              'Hesaplama kaydedildi',
-                                              snackPosition: SnackPosition.BOTTOM,
-                                              backgroundColor: Colors.green.shade100,
-                                              colorText: Colors.green.shade800,
-                                              borderRadius: 10,
-                                              margin: const EdgeInsets.all(15),
-                                              duration: const Duration(seconds: 2),
-                                            );
+                                          onPressed: () {
+                                            _showCustomerNamePopup(context);
                                           },
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: Colors.green.shade600,

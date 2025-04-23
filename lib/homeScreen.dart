@@ -130,6 +130,19 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
+                                // Müşteri/Kurum adını göster
+                                if (calculation.customerName.isNotEmpty)
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Text(
+                                      'Müşteri: ${calculation.customerName}',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ),
                                 Text(
                                   'Tutar: ${calculation.netAmount.toStringAsFixed(2)} TL',
                                   style: const TextStyle(
@@ -139,6 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             ),
+                            // Remove any subtitlePadding parameter - it's not valid in ExpansionTile
                             leading: CircleAvatar(
                               backgroundColor: calculation.excelType.contains('58')
                                   ? Colors.blue.shade800
@@ -150,6 +164,39 @@ class _HomeScreenState extends State<HomeScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+                            ),
+                            trailing: IconButton(
+                              icon: Icon(
+                                Icons.picture_as_pdf,
+                                color: calculation.excelType.contains('58')
+                                    ? Colors.blue.shade800
+                                    : Colors.red.shade700,
+                              ),
+                              onPressed: () async {
+                                // PDF oluşturma işlemi başladığında yükleniyor göster
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (BuildContext context) {
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        color: calculation.excelType.contains('58')
+                                          ? Colors.blue.shade800
+                                          : Colors.red.shade700,
+                                      ),
+                                    );
+                                  },
+                                );
+
+                                // PDF oluştur ve indir
+                                try {
+                                  await CalculateController.generateCalculationPdf(calculation);
+                                } finally {
+                                  // Yükleniyor göstergesini kapat
+                                  Navigator.of(context, rootNavigator: true).pop();
+                                }
+                              },
+                              tooltip: 'PDF İndir',
                             ),
                             expandedCrossAxisAlignment: CrossAxisAlignment.start,
                             childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

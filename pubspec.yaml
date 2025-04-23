@@ -31,17 +31,19 @@ dependencies:
   flutter:
     sdk: flutter
 
-
   # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
-  excel: ^4.0.0  # Excel dosyalarını işlemek için
-  dropdown_search: ^5.0.6  # Arama özellikli dropdown için
-  get: ^4.6.6
-  #file_picker: ^6.1.1  # Dosya seçmek için
-  path_provider: ^2.1.2  # Dosya yollarını yönetmek için
-  shared_preferences: ^2.2.2
+  cupertino_icons: ^1.0.2
+  excel: ^4.0.2
+  flutter_svg: ^2.0.10+1
+  http: ^1.2.0
+  dropdown_search: ^5.0.6
+  get: ^4.6.5
   intl: ^0.19.0
+  shared_preferences: ^2.2.2
+  pdf: ^3.10.8
+  path_provider: ^2.1.2
+  open_file: ^3.3.2
+  permission_handler: ^11.3.0
 
 dev_dependencies:
   flutter_test:

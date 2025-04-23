@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
+import 'package:intl/intl.dart';
+import 'package:open_file/open_file.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:typed_data';
+import 'package:flutter/services.dart';
 
 // Hesaplama geçmişini saklamak için model sınıfı
 class CalculationHistory {
@@ -11,6 +20,7 @@ class CalculationHistory {
   final double totalAmount;
   final double netAmount;
   final List<Map<String, dynamic>> products;
+  final String customerName; // Müşteri/kurum adı
 
   CalculationHistory({
     required this.date,
@@ -19,6 +29,7 @@ class CalculationHistory {
     required this.totalAmount,
     required this.netAmount,
     required this.products,
+    required this.customerName, // Müşteri adı eklendi
   });
 
   // JSON'a çevirme
@@ -30,6 +41,7 @@ class CalculationHistory {
       'totalAmount': totalAmount,
       'netAmount': netAmount,
       'products': products,
+      'customerName': customerName, // Müşteri adı JSON'a eklendi
     };
   }
 
@@ -42,6 +54,7 @@ class CalculationHistory {
       totalAmount: json['totalAmount'],
       netAmount: json['netAmount'],
       products: List<Map<String, dynamic>>.from(json['products']),
+      customerName: json['customerName'] ?? '', // JSON'dan müşteri adı alınıyor
     );
   }
 }
@@ -51,7 +64,7 @@ class CalculateController extends GetxController {
   static RxList<CalculationHistory> calculationHistory = <CalculationHistory>[].obs;
   
   // En fazla saklanacak geçmiş sayısı
-  static const int maxHistoryCount = 10;
+  static const int maxHistoryCount = 20;
   
   // Excel dosya tipi (58 nolu, 59 nolu)
   String excelType = '';
@@ -354,9 +367,9 @@ class CalculateController extends GetxController {
   }
   
   // Hesaplamayı kaydet
-  Future<void> saveCalculation() async {
+  Future<void> saveCalculation(String customerName) async {
     // Eğer en az 3 ürün eklenmişse kaydet
-    if (selectedProducts.length >= 3) {
+    if (selectedProducts.length >= 2) {
       final calculation = CalculationHistory(
         date: DateTime.now(),
         excelType: excelType,
@@ -364,6 +377,7 @@ class CalculateController extends GetxController {
         totalAmount: toplamTutar.value,
         netAmount: netTutar.value,
         products: selectedProducts.map((p) => Map<String, dynamic>.from(p)).toList(),
+        customerName: customerName, // Müşteri/kurum adı kaydediliyor
       );
       
       // Geçmişe ekle
@@ -404,6 +418,281 @@ class CalculateController extends GetxController {
       }
     } catch (e) {
       print('Hesaplama geçmişi yüklenemedi: $e');
+    }
+  }
+
+  // Hesaplama geçmişi için PDF oluştur
+  static Future<File?> generateCalculationPdf(CalculationHistory calculation) async {
+    try {
+      // İzinleri kontrol et (Android için)
+      if (Platform.isAndroid) {
+        var status = await Permission.storage.status;
+        if (!status.isGranted) {
+          await Permission.storage.request();
+          status = await Permission.storage.status;
+          if (!status.isGranted) {
+            Get.snackbar(
+              'Hata',
+              'PDF kaydetmek için depolama izni gereklidir',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red.shade100,
+              colorText: Colors.red.shade800,
+            );
+            return null;
+          }
+        }
+      }
+      
+      // PDF dokümanı oluştur
+      final pdf = pw.Document();
+      
+      // OSM Yapı logosu ekle
+      final ByteData logoData = await rootBundle.load('assets/images/osmyapilogo.jpg');
+      final Uint8List logoBytes = logoData.buffer.asUint8List();
+
+      // Bugünün tarihini formatla
+      final dateFormatter = DateFormat('dd.MM.yyyy HH:mm');
+      final formattedDate = dateFormatter.format(calculation.date);
+      
+      // PDF'e içerik ekle
+      pdf.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(32),
+          header: (pw.Context context) {
+            return pw.Column(
+              children: [
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                  children: [
+                    pw.Image(pw.MemoryImage(logoBytes), width: 120),
+                    pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.end,
+                      children: [
+                        pw.Text('OSM YAPI', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                        pw.SizedBox(height: 5),
+                        pw.Text('Hesaplama Raporu', style: pw.TextStyle(fontSize: 16)),
+                      ],
+                    )
+                  ]
+                ),
+                pw.SizedBox(height: 5),
+                pw.Divider(),
+              ],
+            );
+          },
+          build: (pw.Context context) => [
+            // Müşteri ve Hesaplama Bilgileri
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: PdfColors.grey100,
+                borderRadius: pw.BorderRadius.circular(8),
+              ),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Hesaplama Detayları', 
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)
+                      ),
+                      pw.Text('Tarih: $formattedDate', style: const pw.TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 10),
+                  pw.Row(
+                    children: [
+                      pw.Expanded(child: pw.Text('Excel Tipi: ${calculation.excelType}')),
+                      pw.Expanded(child: pw.Text('Ürün Sayısı: ${calculation.productCount}')),
+                    ],
+                  ),
+                  if (calculation.customerName.isNotEmpty) ...[
+                    pw.SizedBox(height: 5),
+                    pw.Text('Müşteri/Kurum: ${calculation.customerName}',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            
+            pw.SizedBox(height: 20),
+            
+            // Ürün Listesi Tablosu
+            pw.Text('Ürün Listesi', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.SizedBox(height: 10),
+            pw.Table(
+              border: pw.TableBorder.all(color: PdfColors.grey400),
+              columnWidths: {
+                0: const pw.FlexColumnWidth(1.5),
+                1: const pw.FlexColumnWidth(3),
+                2: const pw.FlexColumnWidth(1),
+                3: const pw.FlexColumnWidth(1.5),
+                4: const pw.FlexColumnWidth(1.5),
+              },
+              children: [
+                // Tablo Başlığı
+                pw.TableRow(
+                  decoration: const pw.BoxDecoration(color: PdfColors.grey200),
+                  children: [
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Ürün Kodu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Ürün Adı', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Metre', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Birim Fiyat', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Toplam', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                  ],
+                ),
+                
+                // Ürün Satırları
+                for (var product in calculation.products)
+                  pw.TableRow(
+                    children: [
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(product.containsKey('ÜRÜN KODU') ? product['ÜRÜN KODU'].toString() : ''),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(product.containsKey('ÜRÜN ADI') ? product['ÜRÜN ADI'].toString() : ''),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(product.containsKey('_metre') ? product['_metre'].toString() : '1.0'),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(product.containsKey('FİYAT (Metre)') 
+                          ? '${product['FİYAT (Metre)'].toString()} TL' 
+                          : ''),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(product.containsKey('hesaplananTutar') 
+                          ? '${product['hesaplananTutar'].toStringAsFixed(2)} TL' 
+                          : ''),
+                      ),
+                    ],
+                  ),
+              ],
+            ),
+            
+            pw.SizedBox(height: 20),
+            
+            // Tutar Özeti
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                borderRadius: pw.BorderRadius.circular(8),
+                border: pw.Border.all(color: PdfColors.grey400),
+              ),
+              child: pw.Column(
+                children: [
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('Toplam Tutar', style: const pw.TextStyle(fontSize: 12)),
+                      pw.Text('${calculation.totalAmount.toStringAsFixed(2)} TL', style: const pw.TextStyle(fontSize: 12)),
+                    ],
+                  ),
+                  pw.SizedBox(height: 5),
+                  pw.Divider(color: PdfColors.grey300),
+                  pw.SizedBox(height: 5),
+                  pw.Row(
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Text('NET TUTAR', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                      pw.Text('${calculation.netAmount.toStringAsFixed(2)} TL', 
+                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+          footer: (pw.Context context) {
+            return pw.Column(
+              children: [
+                pw.Divider(),
+                pw.SizedBox(height: 5),
+                pw.Row(
+                  mainAxisAlignment: pw.MainAxisAlignment.center,
+                  children: [
+                    pw.Text('OSM Yapı - Tüm hakları saklıdır', style: const pw.TextStyle(fontSize: 10)),
+                  ],
+                ),
+              ],
+            );
+          },
+        ),
+      );
+      
+      // PDF'i kaydet
+      final String fileName = 'OSM_YAPI_Hesaplama_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
+      
+      Directory? directory;
+      if (Platform.isAndroid) {
+        directory = await getExternalStorageDirectory();
+      } else if (Platform.isIOS) {
+        directory = await getApplicationDocumentsDirectory();
+      } else {
+        directory = await getDownloadsDirectory();
+      }
+      
+      if (directory == null) {
+        Get.snackbar(
+          'Hata',
+          'Dosya kaydetmek için uygun klasör bulunamadı',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red.shade100,
+          colorText: Colors.red.shade800,
+        );
+        return null;
+      }
+      
+      final String path = '${directory.path}/$fileName';
+      final File file = File(path);
+      await file.writeAsBytes(await pdf.save());
+      
+      Get.snackbar(
+        'Başarılı',
+        'PDF indirildi: $fileName',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+      );
+      
+      // PDF dosyasını aç
+      await OpenFile.open(path);
+      
+      return file;
+    } catch (e) {
+      print('PDF oluşturma hatası: $e');
+      Get.snackbar(
+        'Hata',
+        'PDF oluşturulurken bir hata oluştu: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+      return null;
     }
   }
 }
