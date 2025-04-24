@@ -385,12 +385,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   const SizedBox(height: 30),
                   
-                  
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 25),
+                  // Hoş Geldiniz ve Son Hesaplamalar alt alta ortada
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        // Hoş Geldiniz Yazısı
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 13, horizontal: 33),
                           decoration: BoxDecoration(
                             color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(15),
@@ -402,7 +404,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: const Text(
                             'Hoşgeldiniz',
                             style: TextStyle(
-                              fontSize: 32,
+                              fontSize: 26,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
                               letterSpacing: 1.5,
@@ -416,56 +418,59 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(15),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.5),
-                            width: 1,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: () => _showCalculationHistoryPopup(context),
+                        
+                        const SizedBox(height: 15),
+                        
+                        // Son Hesaplamalar Butonu
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(15),
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Column(
-                                children: [
-                                  Icon(
-                                    Icons.history_rounded,
-                                    size: 28,
-                                    color: Colors.white.withOpacity(0.9),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  const Text(
-                                    'Son\nHesaplamalar',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 12,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () => _showCalculationHistoryPopup(context),
+                              borderRadius: BorderRadius.circular(15),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.history_rounded,
+                                      size: 28,
+                                      color: Colors.white.withOpacity(0.9),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Son Hesaplamalar',
+                                      textAlign: TextAlign.center,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   
                   SizedBox(height: screenSize.height * 0.08),
