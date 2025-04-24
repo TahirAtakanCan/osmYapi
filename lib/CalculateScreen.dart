@@ -563,17 +563,6 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                                         fontSize: 15,
                                                       ),
                                                     ),
-                                                    if (profilBoyuText.isNotEmpty || fiyatText.isNotEmpty)
-                                                      Padding(
-                                                        padding: const EdgeInsets.only(top: 4),
-                                                        child: Text(
-                                                          '$profilBoyuText ${profilBoyuText.isNotEmpty && fiyatText.isNotEmpty ? " - " : ""} $fiyatText',
-                                                          style: TextStyle(
-                                                            fontSize: 13,
-                                                            color: Colors.grey.shade700,
-                                                          ),
-                                                        ),
-                                                      ),
                                                     if (hesaplananTutarText.isNotEmpty)
                                                       Padding(
                                                         padding: const EdgeInsets.only(top: 6),
@@ -597,41 +586,93 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                                 ),
                                               ),
                                               const SizedBox(width: 8),
+                                              // İlk alan: Profil Boyu
                                               Expanded(
                                                 flex: 1,
-                                                child: SizedBox(
-                                                  height: 50,
-                                                  child: TextField(
-                                                    controller: controller.metreControllers[index],
-                                                    decoration: InputDecoration(
-                                                      labelText: 'Metre',
-                                                      labelStyle: TextStyle(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Profil Boyu',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
                                                         color: Colors.grey.shade600,
-                                                        fontSize: 14,
                                                       ),
-                                                      border: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(8),
-                                                      ),
-                                                      focusedBorder: OutlineInputBorder(
-                                                        borderRadius: BorderRadius.circular(8),
-                                                        borderSide: BorderSide(color: primaryColor, width: 2),
-                                                      ),
-                                                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                                     ),
-                                                    style: const TextStyle(fontSize: 14),
-                                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                                    inputFormatters: [
-                                                      FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-                                                    ],
-                                                    onChanged: (value) {
-                                                      if (value.isNotEmpty) {
-                                                        controller.calculateTotalPrice();
-                                                      } else {
-                                                        controller.metreControllers[index] = '0' as TextEditingController;
-                                                        controller.calculateTotalPrice();
-                                                      }
-                                                    },
-                                                  ),
+                                                    const SizedBox(height: 4),
+                                                    SizedBox(
+                                                      height: 40,
+                                                      child: TextField(
+                                                        controller: controller.profilBoyuControllers[index],
+                                                        decoration: InputDecoration(
+                                                          border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          focusedBorder: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                            borderSide: BorderSide(color: primaryColor, width: 2),
+                                                          ),
+                                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                        ),
+                                                        style: const TextStyle(fontSize: 14),
+                                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                                        inputFormatters: [
+                                                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                                                        ],
+                                                        onChanged: (value) {
+                                                          if (value.isEmpty) {
+                                                            controller.profilBoyuControllers[index]?.text = '0';
+                                                          }
+                                                          controller.calculateTotalPrice();
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              // İkinci alan: Paket
+                                              Expanded(
+                                                flex: 1,
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Paket',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey.shade600,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 4),
+                                                    SizedBox(
+                                                      height: 40,
+                                                      child: TextField(
+                                                        controller: controller.paketControllers[index],
+                                                        decoration: InputDecoration(
+                                                          border: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          focusedBorder: OutlineInputBorder(
+                                                            borderRadius: BorderRadius.circular(8),
+                                                            borderSide: BorderSide(color: primaryColor, width: 2),
+                                                          ),
+                                                          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                        ),
+                                                        style: const TextStyle(fontSize: 14),
+                                                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                                        inputFormatters: [
+                                                          FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                                                        ],
+                                                        onChanged: (value) {
+                                                          if (value.isEmpty) {
+                                                            controller.paketControllers[index]?.text = '0';
+                                                          }
+                                                          controller.calculateTotalPrice();
+                                                        },
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                               const SizedBox(width: 8),

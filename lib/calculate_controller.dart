@@ -97,7 +97,10 @@ class CalculateController extends GetxController {
   
   final iskontoController = TextEditingController(text: '0');
   final kdvController = TextEditingController(text: '20');
-  final Map<int, TextEditingController> metreControllers = {};
+  
+  
+  final Map<int, TextEditingController> profilBoyuControllers = {};
+  final Map<int, TextEditingController> paketControllers = {};
   
   
   RxBool isLoading = true.obs;
@@ -105,7 +108,8 @@ class CalculateController extends GetxController {
   
   String codeColumn = '';
   String nameColumn = '';
-  String profilBoyuColumn = '';
+  String profilBoyuColumn = 'PROFİL BOYU (metre)';
+  String paketColumn = 'PAKET';
   String fiyatColumn = '';
 
   // Controller'ın başlatılması
@@ -123,7 +127,8 @@ class CalculateController extends GetxController {
     // Controller'ları temizle
     iskontoController.dispose();
     kdvController.dispose();
-    metreControllers.forEach((_, controller) => controller.dispose());
+    profilBoyuControllers.forEach((_, controller) => controller.dispose());
+    paketControllers.forEach((_, controller) => controller.dispose());
     super.onClose();
   }
 
@@ -175,9 +180,16 @@ class CalculateController extends GetxController {
         // Ürünü ekle
         selectedProducts.add(Map<String, dynamic>.from(product));
         
-        // Metre controller'ı oluştur
-        metreControllers[newProductIndex] = TextEditingController(text: '1');
-        metreControllers[newProductIndex]!.addListener(() {
+        // Profil Boyu ve Paket controller'ları oluştur
+        profilBoyuControllers[newProductIndex] = TextEditingController(text: '1');
+        paketControllers[newProductIndex] = TextEditingController(text: '1');
+        
+        // Her iki controller'a da listener ekle
+        profilBoyuControllers[newProductIndex]!.addListener(() {
+          calculateTotalPrice();
+        });
+        
+        paketControllers[newProductIndex]!.addListener(() {
           calculateTotalPrice();
         });
         
@@ -196,21 +208,28 @@ class CalculateController extends GetxController {
   // Ürün silme fonksiyonu
   void removeProduct(int index) {
     if (index >= 0 && index < selectedProducts.length) {
-      metreControllers[index]?.dispose();
+      profilBoyuControllers[index]?.dispose();
+      paketControllers[index]?.dispose();
       selectedProducts.removeAt(index);
       
       // Controller'ları yeniden indeksle
-      final Map<int, TextEditingController> updatedControllers = {};
+      final Map<int, TextEditingController> updatedProfileControllers = {};
+      final Map<int, TextEditingController> updatedPaketControllers = {};
+      
       for (int i = 0; i < selectedProducts.length; i++) {
         if (i >= index) {
-          updatedControllers[i] = metreControllers[i + 1]!;
+          updatedProfileControllers[i] = profilBoyuControllers[i + 1]!;
+          updatedPaketControllers[i] = paketControllers[i + 1]!;
         } else {
-          updatedControllers[i] = metreControllers[i]!;
+          updatedProfileControllers[i] = profilBoyuControllers[i]!;
+          updatedPaketControllers[i] = paketControllers[i]!;
         }
       }
       
-      metreControllers.clear();
-      metreControllers.addAll(updatedControllers);
+      profilBoyuControllers.clear();
+      paketControllers.clear();
+      profilBoyuControllers.addAll(updatedProfileControllers);
+      paketControllers.addAll(updatedPaketControllers);
       
       calculateTotalPrice();
     }
@@ -222,20 +241,44 @@ class CalculateController extends GetxController {
     
     for (int i = 0; i < selectedProducts.length; i++) {
       final product = selectedProducts[i];
-      final controller = metreControllers[i];
+      final profilBoyuController = profilBoyuControllers[i];
+      final paketController = paketControllers[i];
       
-      if (controller != null) {
-        final metre = double.tryParse(controller.text) ?? 0.0;
+      if (profilBoyuController != null && paketController != null) {
+        // Profil Boyu ve Paket değerlerini al
+        final profilBoyuValue = double.tryParse(profilBoyuController.text) ?? 0.0;
+        final paketValue = double.tryParse(paketController.text) ?? 0.0;
+        
+        // Excel'deki değerleri al
+        double excelProfilBoyuValue = 0.0;
+        double excelPaketValue = 0.0;
+        
+        if (profilBoyuColumn.isNotEmpty && product.containsKey(profilBoyuColumn)) {
+          var value = product[profilBoyuColumn];
+          excelProfilBoyuValue = value is double ? value : double.tryParse(value.toString()) ?? 0.0;
+        }
+        
+        if (paketColumn.isNotEmpty && product.containsKey(paketColumn)) {
+          var value = product[paketColumn];
+          excelPaketValue = value is double ? value : double.tryParse(value.toString()) ?? 0.0;
+        }
+        
+        // Hesaplama: (Profil Boyu * Excel Profil Boyu) + (Paket * Excel Paket)
+        double toplamDeger = (profilBoyuValue * excelProfilBoyuValue) + (paketValue * excelPaketValue);
         
         // Eğer fiyat sütunu bulunabilmişse hesapla
         if (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) {
-          // Metre değerini ürün fiyatı ile çarp ve toplama ekle
-          double metreFiyati = double.parse(product[fiyatColumn].toString());
-          double urunTutari = metreFiyati * metre;
+          // Toplamı ürün fiyatı ile çarp
+          var fiyatValue = product[fiyatColumn];
+          double metreFiyati = fiyatValue is double ? fiyatValue : double.tryParse(fiyatValue.toString()) ?? 0.0;
+          double urunTutari = metreFiyati * toplamDeger;
           total += urunTutari;
           
-          // Hesaplanan değeri ürün bilgisine ekle (sonraki gösterimler için)
+          // Hesaplanan değerleri ürün bilgisine ekle (sonraki gösterimler için)
           product['hesaplananTutar'] = urunTutari;
+          product['toplamDeger'] = toplamDeger;
+          product['profilBoyuDegeri'] = profilBoyuValue;
+          product['paketDegeri'] = paketValue;
           selectedProducts[i] = product; // Gözlenebilir diziyi güncelle
         }
       }
@@ -309,18 +352,22 @@ class CalculateController extends GetxController {
       } else {
         // Alternatif isimler
         for (var key in excelData[0].keys) {
-          if (key.toLowerCase().contains('profil') || key.toLowerCase().contains('boy')) {
+          if (key.toLowerCase().contains('profil') && key.toLowerCase().contains('boy')) {
             profilBoyuColumn = key;
             break;
           }
         }
-        // İlk sayısal değeri içeren sütunu kullan
-        if (profilBoyuColumn.isEmpty) {
-          for (var key in excelData[0].keys) {
-            if (excelData[0][key] is double) {
-              profilBoyuColumn = key;
-              break;
-            }
+      }
+
+      // Paket sütunu
+      if (excelData[0].containsKey('PAKET')) {
+        paketColumn = 'PAKET';
+      } else {
+        // Alternatif isimler
+        for (var key in excelData[0].keys) {
+          if (key.toLowerCase().contains('paket')) {
+            paketColumn = key;
+            break;
           }
         }
       }
@@ -350,6 +397,8 @@ class CalculateController extends GetxController {
           }
         }
       }
+
+      print('Sütun isimleri: Kod=$codeColumn, Ad=$nameColumn, ProfilBoyu=$profilBoyuColumn, Paket=$paketColumn, Fiyat=$fiyatColumn');
     }
   }
 
