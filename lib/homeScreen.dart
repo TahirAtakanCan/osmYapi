@@ -112,12 +112,20 @@ class _HomeScreenState extends State<HomeScreen> {
                               borderRadius: BorderRadius.circular(15),
                             ),
                             tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            title: Text(
-                              '${calculation.excelType} - ${calculation.productCount} Ürün',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
+                            title: calculation.customerName.isNotEmpty
+                                ? Padding(
+                                    padding: const EdgeInsets.only(bottom: 4),
+                                    child: Text(
+                                      'Müşteri: ${calculation.customerName}',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade700,
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  )
+                                : const Text(''),
+                            
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -130,19 +138,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                // Müşteri/Kurum adını göster
-                                if (calculation.customerName.isNotEmpty)
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Text(
-                                      'Müşteri: ${calculation.customerName}',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
+                                Text(
+                              '${calculation.excelType} - ${calculation.productCount} Ürün',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
                                   ),
+                                ),
                                 Text(
                                   'Tutar: ${calculation.netAmount.toStringAsFixed(2)} TL',
                                   style: const TextStyle(

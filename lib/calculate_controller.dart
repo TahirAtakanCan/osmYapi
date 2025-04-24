@@ -64,7 +64,7 @@ class CalculateController extends GetxController {
   static RxList<CalculationHistory> calculationHistory = <CalculationHistory>[].obs;
   
   // En fazla saklanacak geçmiş sayısı
-  static const int maxHistoryCount = 20;
+  static const int maxHistoryCount = 100;
   
   // Excel dosya tipi (58 nolu, 59 nolu)
   String excelType = '';
