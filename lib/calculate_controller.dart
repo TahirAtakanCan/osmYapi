@@ -440,8 +440,8 @@ class CalculateController extends GetxController {
   
   // Hesaplamayı kaydet
   Future<void> saveCalculation(String customerName) async {
-    
-    if (selectedProducts.length >= 0) {
+    // Eğer en az 1 ürün eklenmişse kaydet
+    if (selectedProducts.length >= 1) {
       // Ürün verilerini kopyala ve fiyat bilgilerinin kalıcı olmasını sağla
       final List<Map<String, dynamic>> productCopies = [];
 

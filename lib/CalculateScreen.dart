@@ -234,13 +234,22 @@ class _CalculateScreenState extends State<CalculateScreen> {
                 await controller.saveCalculation(customerNameController.text);
                 Get.snackbar(
                   'Başarılı',
-                  'Hesaplama kaydedildi',
-                  snackPosition: SnackPosition.BOTTOM,
+                  'Hesaplama başarıyla kaydedildi',
+                  snackPosition: SnackPosition.TOP,
                   backgroundColor: Colors.green.shade100,
                   colorText: Colors.green.shade800,
                   borderRadius: 10,
                   margin: const EdgeInsets.all(15),
-                  duration: const Duration(seconds: 2),
+                  duration: const Duration(seconds: 3),
+                  icon: const Icon(Icons.check_circle, color: Colors.green),
+                  boxShadows: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      spreadRadius: 1,
+                      blurRadius: 5,
+                      offset: const Offset(0, 3),
+                    )
+                  ],
                 );
               },
             ),
@@ -923,7 +932,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                     
                                     const SizedBox(height: 16),
                                     
-                                    if (controller.selectedProducts.length >= 3)
+                                    if (controller.selectedProducts.length >= 1)
                                       SizedBox(
                                         width: double.infinity,
                                         child: ElevatedButton.icon(
