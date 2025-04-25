@@ -604,9 +604,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                                           FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                                                         ],
                                                         onChanged: (value) {
-                                                          if (value.isEmpty) {
-                                                            controller.profilBoyuControllers[index]?.text = '0';
-                                                          }
+                                                          // Boş değer kontrolünü kaldırdık
+                                                          // Değişikliği direk uygulayacak
                                                           controller.calculateTotalPrice();
                                                         },
                                                       ),
@@ -649,9 +648,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                                           FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
                                                         ],
                                                         onChanged: (value) {
-                                                          if (value.isEmpty) {
-                                                            controller.paketControllers[index]?.text = '0';
-                                                          }
+                                                          // Boş değer kontrolünü kaldırdık
+                                                          // Değişikliği direk uygulayacak
                                                           controller.calculateTotalPrice();
                                                         },
                                                       ),

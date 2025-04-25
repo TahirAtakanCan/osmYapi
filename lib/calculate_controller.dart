@@ -246,9 +246,14 @@ class CalculateController extends GetxController {
       final paketController = paketControllers[i];
       
       if (profilBoyuController != null && paketController != null) {
-        // Profil Boyu ve Paket değerlerini al
-        final profilBoyuValue = double.tryParse(profilBoyuController.text) ?? 0.0;
-        final paketValue = double.tryParse(paketController.text) ?? 0.0;
+        // Profil Boyu ve Paket değerlerini al (boş değer kontrolünü değiştirdim)
+        final profilBoyuValue = profilBoyuController.text.isEmpty 
+            ? 0.0 
+            : double.tryParse(profilBoyuController.text) ?? 0.0;
+        
+        final paketValue = paketController.text.isEmpty 
+            ? 0.0 
+            : double.tryParse(paketController.text) ?? 0.0;
         
         // Excel'deki değerleri al
         double excelProfilBoyuValue = 0.0;
