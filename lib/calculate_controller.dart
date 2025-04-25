@@ -596,7 +596,33 @@ class CalculateController extends GetxController {
       print("PDF OLUŞTURMA BAŞLATILIYOR...");
       print("Ürün sayısı: ${calculation.products.length}");
       
+      // Kullanılan alanları kontrol et
+      bool hasProfilBoyu = false;
+      bool hasPaket = false;
+      
+      // Ürünlerde profil boyu ve paket kullanılmış mı kontrol et
       if (calculation.products.isNotEmpty) {
+        for (var product in calculation.products) {
+          // Profil Boyu kontrolü
+          if (product.containsKey('profilBoyuDegeri')) {
+            final value = product['profilBoyuDegeri'];
+            if (value != null && (value is num) && value > 0) {
+              hasProfilBoyu = true;
+            }
+          }
+          
+          // Paket kontrolü
+          if (product.containsKey('paketDegeri')) {
+            final value = product['paketDegeri'];
+            if (value != null && (value is num) && value > 0) {
+              hasPaket = true;
+            }
+          }
+        }
+        
+        print("Profil Boyu kullanılmış mı: $hasProfilBoyu");
+        print("Paket kullanılmış mı: $hasPaket");
+        
         print("İlk ürün içeriği: ${calculation.products[0]}");
         print("Mevcut anahtar listesi: ${calculation.products[0].keys.toList()}");
         
@@ -763,7 +789,6 @@ class CalculateController extends GetxController {
                   pw.SizedBox(height: 10),
                   pw.Row(
                     children: [
-                      
                       pw.Expanded(child: pw.Text('Urun Sayisi: ${calculation.productCount}')),
                     ],
                   ),
@@ -787,11 +812,11 @@ class CalculateController extends GetxController {
               columnWidths: {
                 0: const pw.FlexColumnWidth(1.5), // Urun Kodu
                 1: const pw.FlexColumnWidth(3),    // Urun Adi
-                2: const pw.FlexColumnWidth(1),    // Profil Boyu
-                3: const pw.FlexColumnWidth(1),    // Paket
-                4: const pw.FlexColumnWidth(1.2),  // Toplam Metretül
-                5: const pw.FlexColumnWidth(1.2),  // Liste Fiyatı
-                6: const pw.FlexColumnWidth(1.5),  // Toplam
+                if (hasProfilBoyu) 2: const pw.FlexColumnWidth(1),    // Profil Boyu (sadece kullanılmışsa)
+                if (hasPaket) (hasProfilBoyu ? 3 : 2): const pw.FlexColumnWidth(1),    // Paket (sadece kullanılmışsa)
+                (hasProfilBoyu && hasPaket) ? 4 : (hasProfilBoyu || hasPaket ? 3 : 2): const pw.FlexColumnWidth(1.2),  // Toplam Metretül
+                (hasProfilBoyu && hasPaket) ? 5 : (hasProfilBoyu || hasPaket ? 4 : 3): const pw.FlexColumnWidth(1.2),  // Liste Fiyatı
+                (hasProfilBoyu && hasPaket) ? 6 : (hasProfilBoyu || hasPaket ? 5 : 4): const pw.FlexColumnWidth(1.5),  // Toplam
               },
               children: [
                 // Tablo Başlığı
@@ -806,11 +831,11 @@ class CalculateController extends GetxController {
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text('Urun Adi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
-                    pw.Padding(
+                    if (hasProfilBoyu) pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text('Profil Boyu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
-                    pw.Padding(
+                    if (hasPaket) pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text('Paket', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
@@ -847,7 +872,7 @@ class CalculateController extends GetxController {
                           fixTurkishChars(product['ÜRÜN ADI'].toString()) : ''
                         ),
                       ),
-                      pw.Padding(
+                      if (hasProfilBoyu) pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
                           product.containsKey('profilBoyuDegeri') ? 
@@ -855,22 +880,17 @@ class CalculateController extends GetxController {
                             final value = product['profilBoyuDegeri'];
                             
                             return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
-                          })() : 
-                          (product.containsKey('toplamDeger') ? 
-                          (() {
-                            final value = product['toplamDeger'];
-                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
-                          })() : '1')
+                          })() : '0'
                         ),
                       ),
-                      pw.Padding(
+                      if (hasPaket) pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
                           product.containsKey('paketDegeri') ? 
                           (() {
                             final value = product['paketDegeri'];
                             return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
-                          })() : '1'
+                          })() : '0'
                         ),
                       ),
                       pw.Padding(
