@@ -95,8 +95,8 @@ class CalculateController extends GetxController {
   RxDouble kdvTutar = 0.0.obs;
   
   
-  final iskontoController = TextEditingController(text: '0');
-  final kdvController = TextEditingController(text: '20');
+  final iskontoController = TextEditingController(text: '');
+  final kdvController = TextEditingController(text: '');
   
   
   final Map<int, TextEditingController> profilBoyuControllers = {};
