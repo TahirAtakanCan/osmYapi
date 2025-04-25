@@ -1,10 +1,27 @@
 import 'package:flutter/material.dart';
 import 'homeScreen.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 void main() {
   // Flutter'ın başlangıç optimizasyonunu sağlamak için eklendi
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // Android 13+ için izinlerin kontrol edilmesi
+  _checkAndRequestPermissions();
+  
   runApp(const MyApp());
+}
+
+// İzinlerin kontrolü ve gerekirse talep edilmesi
+Future<void> _checkAndRequestPermissions() async {
+  if (await Permission.storage.isDenied) {
+    await Permission.storage.request();
+  }
+  
+  // Android 13+ için özel izinler
+  if (await Permission.photos.isDenied) {
+    await Permission.photos.request();
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -44,6 +44,7 @@ dependencies:
   path_provider: ^2.1.2
   open_file: ^3.3.2
   permission_handler: ^11.3.0
+  device_info_plus: ^9.1.1
 
 dev_dependencies:
   flutter_test:

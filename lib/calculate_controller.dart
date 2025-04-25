@@ -11,6 +11,7 @@ import 'package:open_file/open_file.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 // Hesaplama geçmişini saklamak için model sınıfı
 class CalculationHistory {
@@ -473,16 +474,29 @@ class CalculateController extends GetxController {
   // Hesaplama geçmişi için PDF oluştur
   static Future<File?> generateCalculationPdf(CalculationHistory calculation) async {
     try {
-      // İzinleri kontrol et (Android için)
+      // Android sürümünü kontrol et
+      bool needsPermission = false;
       if (Platform.isAndroid) {
+        // API 30 (Android 11) ve sonrasında özel izinler gerekmiyor çünkü uygulama kendi dizinine yazabilir
+        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        int sdkVersion = androidInfo.version.sdkInt;
+        
+        // Android 10 ve öncesi için depolama izni gerekiyor
+        if (sdkVersion < 30) {
+          needsPermission = true;
+        }
+      }
+      
+      // Gerekiyorsa izin iste
+      if (needsPermission) {
         var status = await Permission.storage.status;
         if (!status.isGranted) {
-          await Permission.storage.request();
-          status = await Permission.storage.status;
+          status = await Permission.storage.request();
           if (!status.isGranted) {
             Get.snackbar(
               'Hata',
-              'PDF kaydetmek için depolama izni gereklidir',
+              'PDF indirmek için depolama izni gereklidir',
               snackPosition: SnackPosition.BOTTOM,
               backgroundColor: Colors.red.shade100,
               colorText: Colors.red.shade800,
@@ -696,47 +710,117 @@ class CalculateController extends GetxController {
       final String fileName = 'OSM_YAPI_Hesaplama_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
       
       Directory? directory;
+      File file;
+      
       if (Platform.isAndroid) {
-        directory = await getExternalStorageDirectory();
-      } else if (Platform.isIOS) {
+        // Android sürümüne göre kaydetme yöntemini değiştir
+        DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+        AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+        int sdkVersion = androidInfo.version.sdkInt;
+        
+        if (sdkVersion >= 30) { // Android 11+
+          // Android 11'de harici depolamaya doğrudan erişim yok,
+          // uygulama özel dizinine kaydedip sonra paylaşıyoruz
+          directory = await getApplicationDocumentsDirectory();
+          file = File('${directory.path}/$fileName');
+          await file.writeAsBytes(await pdf.save());
+          
+          // Başarı mesajı göster
+          Get.snackbar(
+            'Başarılı',
+            'PDF oluşturuldu, açılıyor...',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade800,
+            duration: const Duration(seconds: 3),
+          );
+          
+          // PDF dosyasını aç
+          await OpenFile.open(file.path);
+        } 
+        else { // Android 10 ve öncesi
+          directory = await getExternalStorageDirectory();
+          if (directory == null) {
+            Get.snackbar(
+              'Hata',
+              'Dosya kaydetmek için uygun klasör bulunamadı',
+              snackPosition: SnackPosition.BOTTOM,
+              backgroundColor: Colors.red.shade100,
+              colorText: Colors.red.shade800,
+            );
+            return null;
+          }
+          
+          file = File('${directory.path}/$fileName');
+          await file.writeAsBytes(await pdf.save());
+          
+          Get.snackbar(
+            'Başarılı',
+            'PDF indirildi: $fileName',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.green.shade100,
+            colorText: Colors.green.shade800,
+            duration: const Duration(seconds: 3),
+          );
+          
+          // PDF dosyasını aç
+          await OpenFile.open(file.path);
+        }
+      } 
+      else if (Platform.isIOS) {
+        // iOS için uygulama dökümanları klasörüne kaydet
         directory = await getApplicationDocumentsDirectory();
-      } else {
-        directory = await getDownloadsDirectory();
-      }
-      
-      if (directory == null) {
+        file = File('${directory.path}/$fileName');
+        await file.writeAsBytes(await pdf.save());
+        
         Get.snackbar(
-          'Hata',
-          'Dosya kaydetmek icin uygun klasor bulunamadi',
+          'Başarılı',
+          'PDF oluşturuldu, açılıyor...',
           snackPosition: SnackPosition.BOTTOM,
-          backgroundColor: Colors.red.shade100,
-          colorText: Colors.red.shade800,
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade800,
+          duration: const Duration(seconds: 3),
         );
-        return null;
+        
+        // PDF dosyasını aç
+        await OpenFile.open(file.path);
+      } 
+      else {
+        // Diğer platformlar için indirme klasörüne kaydet
+        directory = await getDownloadsDirectory();
+        if (directory == null) {
+          Get.snackbar(
+            'Hata',
+            'Dosya kaydetmek için uygun klasör bulunamadı',
+            snackPosition: SnackPosition.BOTTOM,
+            backgroundColor: Colors.red.shade100,
+            colorText: Colors.red.shade800,
+          );
+          return null;
+        }
+        
+        file = File('${directory.path}/$fileName');
+        await file.writeAsBytes(await pdf.save());
+        
+        Get.snackbar(
+          'Başarılı',
+          'PDF indirildi: $fileName',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade800,
+          duration: const Duration(seconds: 3),
+        );
+        
+        // PDF dosyasını aç
+        await OpenFile.open(file.path);
       }
-      
-      final String path = '${directory.path}/$fileName';
-      final File file = File(path);
-      await file.writeAsBytes(await pdf.save());
-      
-      Get.snackbar(
-        'Basarili',
-        'PDF indirildi: $fileName',
-        snackPosition: SnackPosition.BOTTOM,
-        backgroundColor: Colors.green.shade100,
-        colorText: Colors.green.shade800,
-        duration: const Duration(seconds: 3),
-      );
-      
-      // PDF dosyasını aç
-      await OpenFile.open(path);
       
       return file;
     } catch (e) {
-      print('PDF olusturma hatasi: $e');
+      print('PDF oluşturma hatası: $e');
       Get.snackbar(
         'Hata',
-        'PDF olusturulurken bir hata olustu: $e',
+        'PDF oluşturulurken bir hata oluştu: $e',
         snackPosition: SnackPosition.BOTTOM,
         backgroundColor: Colors.red.shade100,
         colorText: Colors.red.shade800,
@@ -745,9 +829,20 @@ class CalculateController extends GetxController {
     }
   }
 
-  // Depolama izni kontrolü için yardımcı fonksiyon
+  // Depolama izni kontrolü için kullanıcı dostu diyalog
   static Future<bool> requestStoragePermission(BuildContext context) async {
     if (Platform.isAndroid) {
+      // Android sürümünü kontrol et
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+      int sdkVersion = androidInfo.version.sdkInt;
+      
+      // Android 11 (API 30) ve üstünde genel depolama izni gerekmez
+      if (sdkVersion >= 30) {
+        return true;
+      }
+      
+      // Android 10 ve öncesi için izin kontrolü
       final status = await Permission.storage.status;
       
       if (status.isGranted) {
