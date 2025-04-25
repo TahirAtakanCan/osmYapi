@@ -529,6 +529,66 @@ class CalculateController extends GetxController {
     }
   }
 
+  // Tüm hesaplama geçmişini silme
+  static Future<void> clearAllHistory() async {
+    try {
+      // Listeyi temizle
+      calculationHistory.clear();
+      // Depolamadan da kaldır
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('calculation_history');
+      
+      Get.snackbar(
+        'Başarılı',
+        'Tüm hesaplama geçmişi silindi',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      print('Hesaplama geçmişi silinemedi: $e');
+      Get.snackbar(
+        'Hata',
+        'Hesaplama geçmişi silinirken bir hata oluştu: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+    }
+  }
+  
+  // Seçilen hesaplamaları silme
+  static Future<void> deleteSelectedCalculations(List<CalculationHistory> selectedCalculations) async {
+    try {
+      if (selectedCalculations.isEmpty) return;
+      
+      // Seçilen hesaplamaları geçmişten kaldır
+      calculationHistory.removeWhere((calc) => selectedCalculations.contains(calc));
+      
+      // Güncellenmiş listeyi depolamaya kaydet
+      await saveHistoryToStorage();
+      
+      Get.snackbar(
+        'Başarılı',
+        '${selectedCalculations.length} hesaplama silindi',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green.shade100,
+        colorText: Colors.green.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    } catch (e) {
+      print('Seçilen hesaplamalar silinemedi: $e');
+      Get.snackbar(
+        'Hata',
+        'Hesaplamalar silinirken bir hata oluştu: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+      );
+    }
+  }
+
   // Hesaplama geçmişi için PDF oluştur
   static Future<File?> generateCalculationPdf(CalculationHistory calculation, {String? fiyatColumn}) async {
     try {
@@ -703,14 +763,14 @@ class CalculateController extends GetxController {
                   pw.SizedBox(height: 10),
                   pw.Row(
                     children: [
-                      pw.Expanded(child: pw.Text('Excel Tipi: ${fixTurkishChars(calculation.excelType)}')),
+                      
                       pw.Expanded(child: pw.Text('Urun Sayisi: ${calculation.productCount}')),
                     ],
                   ),
                   if (calculation.customerName.isNotEmpty) ...[
                     pw.SizedBox(height: 5),
                     pw.Text('Musteri/Kurum: ${fixTurkishChars(calculation.customerName)}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ],
@@ -860,7 +920,7 @@ class CalculateController extends GetxController {
                             // Hiçbir fiyat bulunamadı
                             return '';
                           })(),
-                          style: const pw.TextStyle(fontSize: 9),
+                          style: const pw.TextStyle(fontSize: 12),
                         ),
                       ),
                       pw.Padding(
