@@ -851,23 +851,36 @@ class CalculateController extends GetxController {
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
                           product.containsKey('profilBoyuDegeri') ? 
-                          '${product['profilBoyuDegeri'].toStringAsFixed(2)}' : 
+                          (() {
+                            final value = product['profilBoyuDegeri'];
+                            
+                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
+                          })() : 
                           (product.containsKey('toplamDeger') ? 
-                          '${product['toplamDeger'].toStringAsFixed(2)}' : '1.0')
+                          (() {
+                            final value = product['toplamDeger'];
+                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
+                          })() : '1')
                         ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
                           product.containsKey('paketDegeri') ? 
-                          '${product['paketDegeri'].toStringAsFixed(2)}' : '1.0'
+                          (() {
+                            final value = product['paketDegeri'];
+                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
+                          })() : '1'
                         ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
                           product.containsKey('toplamDeger') ? 
-                          '${product['toplamDeger'].toStringAsFixed(2)}' : '1.0'
+                          (() {
+                            final value = product['toplamDeger'];
+                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
+                          })() : '1'
                         ),
                       ),
                       pw.Padding(
