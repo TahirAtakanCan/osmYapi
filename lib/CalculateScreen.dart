@@ -318,25 +318,9 @@ class _CalculateScreenState extends State<CalculateScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Ürün Seçimi',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          
                           // 59 nolu excel için grup seçim alanı
                           if (widget.buttonType == '59 nolu') ...[
-                            const SizedBox(height: 8),
-                            const Text(
-                              'Grup Seçimi',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
+                            const SizedBox(height: 4),
                             const SizedBox(height: 4),
                             Container(
                               decoration: BoxDecoration(
@@ -742,21 +726,6 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                         ),
                                       ],
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                      decoration: BoxDecoration(
-                                        color: primaryColor,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        'Net: ${controller.netTutar.value.toStringAsFixed(2)} TL',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 16,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -924,7 +893,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                             'NET TUTAR',
                                             style: TextStyle(
                                               fontWeight: FontWeight.bold, 
-                                              fontSize: 18,
+                                              fontSize: 14,
                                               color: primaryColor,
                                             ),
                                           ),
@@ -938,7 +907,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                               '${controller.netTutar.value.toStringAsFixed(2)} TL',
                                               style: const TextStyle(
                                                 fontWeight: FontWeight.bold, 
-                                                fontSize: 18,
+                                                fontSize: 14,
                                                 color: Colors.white,
                                               ),
                                             ),
