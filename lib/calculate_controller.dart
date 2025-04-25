@@ -181,9 +181,9 @@ class CalculateController extends GetxController {
         // Ürünü ekle
         selectedProducts.add(Map<String, dynamic>.from(product));
         
-        // Profil Boyu ve Paket controller'ları oluştur
-        profilBoyuControllers[newProductIndex] = TextEditingController(text: '1');
-        paketControllers[newProductIndex] = TextEditingController(text: '1');
+        // Profil Boyu ve Paket controller'ları oluştur - boş başlatılıyor
+        profilBoyuControllers[newProductIndex] = TextEditingController(text: '');
+        paketControllers[newProductIndex] = TextEditingController(text: '');
         
         // Her iki controller'a da listener ekle
         profilBoyuControllers[newProductIndex]!.addListener(() {
@@ -641,11 +641,11 @@ class CalculateController extends GetxController {
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Miktar', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Profil Boyu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Birim Fiyat', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Paket', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
@@ -674,7 +674,6 @@ class CalculateController extends GetxController {
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        // Miktar için profilBoyuDegeri veya toplamDeger'i kullan
                         child: pw.Text(
                           product.containsKey('profilBoyuDegeri') ? 
                           '${product['profilBoyuDegeri'].toStringAsFixed(2)}' : 
@@ -684,9 +683,10 @@ class CalculateController extends GetxController {
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(product.containsKey('FİYAT (Metre)') 
-                          ? '${product['FİYAT (Metre)'].toString()} TL' 
-                          : ''),
+                        child: pw.Text(
+                          product.containsKey('paketDegeri') ? 
+                          '${product['paketDegeri'].toStringAsFixed(2)}' : '1.0'
+                        ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
