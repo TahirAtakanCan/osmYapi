@@ -477,7 +477,7 @@ class CalculateController extends GetxController {
   }
 
   // Hesaplama geçmişi için PDF oluştur
-  static Future<File?> generateCalculationPdf(CalculationHistory calculation) async {
+  static Future<File?> generateCalculationPdf(CalculationHistory calculation, {String fiyatColumn = 'FİYAT (Metre)'}) async {
     try {
       // Android sürümünü kontrol et
       bool needsPermission = false;
@@ -620,11 +620,13 @@ class CalculateController extends GetxController {
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey400),
               columnWidths: {
-                0: const pw.FlexColumnWidth(1.5),
-                1: const pw.FlexColumnWidth(3),
-                2: const pw.FlexColumnWidth(1),
-                3: const pw.FlexColumnWidth(1.5),
-                4: const pw.FlexColumnWidth(1.5),
+                0: const pw.FlexColumnWidth(1.5), // Urun Kodu
+                1: const pw.FlexColumnWidth(3),    // Urun Adi
+                2: const pw.FlexColumnWidth(1),    // Profil Boyu
+                3: const pw.FlexColumnWidth(1),    // Paket
+                4: const pw.FlexColumnWidth(1.2),  // Toplam Metretül
+                5: const pw.FlexColumnWidth(1.2),  // Liste Fiyatı
+                6: const pw.FlexColumnWidth(1.5),  // Toplam
               },
               children: [
                 // Tablo Başlığı
@@ -646,6 +648,14 @@ class CalculateController extends GetxController {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text('Paket', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Toplam Metretül', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Liste Fiyati', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
@@ -686,6 +696,22 @@ class CalculateController extends GetxController {
                         child: pw.Text(
                           product.containsKey('paketDegeri') ? 
                           '${product['paketDegeri'].toStringAsFixed(2)}' : '1.0'
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          product.containsKey('toplamDeger') ? 
+                          '${product['toplamDeger'].toStringAsFixed(2)}' : '1.0'
+                        ),
+                      ),
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) ? 
+                          '${product[fiyatColumn].toString()} TL' : 
+                          (product.containsKey('FİYAT (Metre)') ? 
+                          '${product['FİYAT (Metre)'].toString()} TL' : '')
                         ),
                       ),
                       pw.Padding(
