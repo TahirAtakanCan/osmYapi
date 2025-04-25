@@ -253,12 +253,12 @@ class _CalculateScreenState extends State<CalculateScreen> {
   @override
   Widget build(BuildContext context) {
     final Color primaryColor = widget.buttonType == '58 nolu' 
-        ? Colors.blue.shade800 
-        : Colors.red.shade700;
+        ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
+        : Color(0xFFF47B20); // Turuncu (logo)
     
     final Color secondaryColor = widget.buttonType == '58 nolu' 
-        ? Colors.blue.shade100 
-        : Colors.red.shade100;
+        ? Colors.grey.shade200 
+        : Color(0xFFFBD2A2); // Açık turuncu (logodaki turuncunun açık tonu)
         
     return Scaffold(
       appBar: AppBar(

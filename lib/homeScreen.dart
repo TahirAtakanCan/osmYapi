@@ -43,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Container(
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade800,
+                    color: Color(0xFF3C3C3C), // Koyu gri/siyah (logo)
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
@@ -156,8 +156,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             // Remove any subtitlePadding parameter - it's not valid in ExpansionTile
                             leading: CircleAvatar(
                               backgroundColor: calculation.excelType.contains('58')
-                                  ? Colors.blue.shade800
-                                  : Colors.red.shade700,
+                                  ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
+                                  : Color(0xFFF47B20), // Turuncu (logo)
                               child: Text(
                                 '${calculation.productCount}',
                                 style: const TextStyle(
@@ -170,8 +170,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               icon: Icon(
                                 Icons.picture_as_pdf,
                                 color: calculation.excelType.contains('58')
-                                    ? Colors.blue.shade800
-                                    : Colors.red.shade700,
+                                    ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
+                                    : Color(0xFFF47B20), // Turuncu (logo)
                               ),
                               onPressed: () async {
                                 // PDF oluşturma işlemi başladığında yükleniyor göster
@@ -182,8 +182,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                     return Center(
                                       child: CircularProgressIndicator(
                                         color: calculation.excelType.contains('58')
-                                          ? Colors.blue.shade800
-                                          : Colors.red.shade700,
+                                          ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
+                                          : Color(0xFFF47B20), // Turuncu (logo)
                                       ),
                                     );
                                   },
@@ -317,9 +317,9 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF1E88E5),
-              Color(0xFFD32F2F),
-              Color(0xFFFFFFFF),
+              Color(0xFF3C3C3C),  // Koyu gri/siyah (logo)
+              Color(0xFFF47B20),  // Turuncu (logo)
+              Color(0xFFFFFFFF),  // Beyaz
             ],
             stops: [0.0, 0.6, 1.0],
           ),
@@ -482,14 +482,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildButton(
                             context, 
                             '58 nolu', 
-                            Colors.blue.shade800, 
+                            Color(0xFF3C3C3C), // Koyu gri/siyah (logo) 
                             isFullWidth: true
                           ),
                           const SizedBox(height: 20),
                           _buildButton(
                             context, 
                             '59 nolu', 
-                            Colors.red.shade700,
+                            Color(0xFFF47B20), // Turuncu (logo)
                             isFullWidth: true
                           ),
                         ],
@@ -497,8 +497,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildButton(context, '58 nolu', Colors.blue.shade800),
-                          _buildButton(context, '59 nolu', Colors.red.shade700),
+                          _buildButton(context, '58 nolu', Color(0xFF3C3C3C)), // Koyu gri/siyah (logo)
+                          _buildButton(context, '59 nolu', Color(0xFFF47B20)), // Turuncu (logo)
                         ],
                       ),
                   

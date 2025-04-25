@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
       title: 'OSM Yapı',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFFF47B20)),
         useMaterial3: true,
       ),
       home: const HomeScreen(),
