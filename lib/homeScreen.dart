@@ -174,16 +174,45 @@ class _HomeScreenState extends State<HomeScreen> {
                                     : Color(0xFFF47B20), // Turuncu (logo)
                               ),
                               onPressed: () async {
+                                // Önce depolama izinlerini kontrol et
+                                bool hasPermission = await CalculateController.requestStoragePermission(context);
+                                
+                                if (!hasPermission) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'PDF indirmek için depolama izni gereklidir.'
+                                      ),
+                                      backgroundColor: Colors.red.shade300,
+                                      duration: Duration(seconds: 4),
+                                    ),
+                                  );
+                                  return;
+                                }
+
                                 // PDF oluşturma işlemi başladığında yükleniyor göster
                                 showDialog(
                                   context: context,
                                   barrierDismissible: false,
                                   builder: (BuildContext context) {
-                                    return Center(
-                                      child: CircularProgressIndicator(
-                                        color: calculation.excelType.contains('58')
-                                          ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
-                                          : Color(0xFFF47B20), // Turuncu (logo)
+                                    return AlertDialog(
+                                      backgroundColor: Colors.white.withOpacity(0.9),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          CircularProgressIndicator(
+                                            color: calculation.excelType.contains('58')
+                                              ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
+                                              : Color(0xFFF47B20), // Turuncu (logo)
+                                          ),
+                                          SizedBox(height: 20),
+                                          Text(
+                                            'PDF hazırlanıyor...',
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     );
                                   },
@@ -192,6 +221,14 @@ class _HomeScreenState extends State<HomeScreen> {
                                 // PDF oluştur ve indir
                                 try {
                                   await CalculateController.generateCalculationPdf(calculation);
+                                } catch (e) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('PDF indirme işlemi sırasında bir hata oluştu: $e'),
+                                      backgroundColor: Colors.red.shade300,
+                                      duration: Duration(seconds: 4),
+                                    ),
+                                  );
                                 } finally {
                                   // Yükleniyor göstergesini kapat
                                   Navigator.of(context, rootNavigator: true).pop();

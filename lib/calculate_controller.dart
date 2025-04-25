@@ -744,4 +744,58 @@ class CalculateController extends GetxController {
       return null;
     }
   }
+
+  // Depolama izni kontrolü için yardımcı fonksiyon
+  static Future<bool> requestStoragePermission(BuildContext context) async {
+    if (Platform.isAndroid) {
+      final status = await Permission.storage.status;
+      
+      if (status.isGranted) {
+        return true;
+      }
+      
+      // İzin henüz verilmemiş, kullanıcıya açıklayıcı bir diyalog göster
+      bool showRationale = await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Depolama İzni Gerekli'),
+            content: Text(
+              'PDF dosyalarını telefona indirebilmek için depolama izni gerekiyor. '
+              'Bu izin, hesaplama sonuçlarınızı PDF olarak kaydetmek ve daha sonra erişebilmek için kullanılacaktır.'
+            ),
+            actions: [
+              TextButton(
+                child: Text('İptal'),
+                onPressed: () {
+                  Navigator.of(context).pop(false);
+                },
+              ),
+              ElevatedButton(
+                child: Text('İzin Ver'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF3C3C3C),
+                ),
+                onPressed: () {
+                  Navigator.of(context).pop(true);
+                },
+              ),
+            ],
+          );
+        },
+      ) ?? false;
+      
+      if (showRationale) {
+        // Kullanıcı izin vermek istedi, izin isteyelim
+        final permissionResult = await Permission.storage.request();
+        return permissionResult.isGranted;
+      }
+      
+      return false;
+    }
+    
+    // iOS veya diğer platformlar için her zaman true döndür
+    return true;
+  }
 }
