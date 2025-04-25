@@ -754,13 +754,15 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
-                                        Expanded(
+                                        SizedBox(
+                                          width: MediaQuery.of(context).size.width * 0.35,
                                           child: TextField(
                                             controller: controller.iskontoController,
                                             decoration: InputDecoration(
-                                              labelText: 'İskonto Oranı (%)',
-                                              labelStyle: TextStyle(color: Colors.grey.shade700),
+                                              labelText: 'İskonto (%)',
+                                              labelStyle: TextStyle(color: Colors.grey.shade700, fontSize: 16),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
@@ -768,8 +770,10 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                                 borderRadius: BorderRadius.circular(10),
                                                 borderSide: BorderSide(color: primaryColor, width: 2),
                                               ),
-                                              prefixIcon: const Icon(Icons.percent),
+                                              prefixIcon: const Icon(Icons.percent, size: 15),
+                                              contentPadding: EdgeInsets.symmetric(vertical: 4, horizontal: 10),
                                             ),
+                                            style: TextStyle(fontSize: 16),
                                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                             inputFormatters: [
                                               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
@@ -777,13 +781,14 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                             onChanged: (_) => controller.calculateTotalPrice(),
                                           ),
                                         ),
-                                        const SizedBox(width: 16),
-                                        Expanded(
+                                        const SizedBox(width: 12),
+                                        SizedBox(
+                                          width: MediaQuery.of(context).size.width * 0.35,
                                           child: TextField(
                                             controller: controller.kdvController,
                                             decoration: InputDecoration(
-                                              labelText: 'KDV Oranı (%)',
-                                              labelStyle: TextStyle(color: Colors.grey.shade700),
+                                              labelText: 'KDV (%)',
+                                              labelStyle: TextStyle(color: Colors.grey.shade700, fontSize: 16),
                                               border: OutlineInputBorder(
                                                 borderRadius: BorderRadius.circular(10),
                                               ),
@@ -791,8 +796,10 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                                 borderRadius: BorderRadius.circular(10),
                                                 borderSide: BorderSide(color: primaryColor, width: 2),
                                               ),
-                                              prefixIcon: const Icon(Icons.attach_money),
+                                              prefixIcon: const Icon(Icons.attach_money, size: 20),
+                                              contentPadding: EdgeInsets.symmetric(vertical: 4, horizontal: 14),
                                             ),
+                                            style: TextStyle(fontSize: 16),
                                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                             inputFormatters: [
                                               FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
