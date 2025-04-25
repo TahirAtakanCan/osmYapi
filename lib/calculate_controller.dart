@@ -511,8 +511,13 @@ class CalculateController extends GetxController {
         }
       }
       
-      // PDF dokümanı oluştur
-      final pdf = pw.Document();
+      // PDF dokümanı oluştur - Türkçe karakter desteği için UTF-8 kodlaması
+      final pdf = pw.Document(
+        // PDF'in UTF-8 kodlamasını desteklemesi için gerekli
+        compress: true, 
+        version: PdfVersion.pdf_1_5,
+        pageMode: PdfPageMode.outlines,
+      );
       
       // OSM Yapı logosu ekle
       final ByteData logoData = await rootBundle.load('assets/images/osmyapilogo.jpg');
@@ -521,6 +526,27 @@ class CalculateController extends GetxController {
       // Bugünün tarihini formatla
       final dateFormatter = DateFormat('dd.MM.yyyy HH:mm');
       final formattedDate = dateFormatter.format(calculation.date);
+      
+      // PDF içeriğini oluştururken Türkçe harfleri düzeltme fonksiyonu
+      String fixTurkishChars(String text) {
+        // Türkçe karakterleri ASCII karşılıklarına dönüştür
+        return text
+          .replaceAll('ı', 'i')
+          .replaceAll('İ', 'I')
+          .replaceAll('ğ', 'g')
+          .replaceAll('Ğ', 'G')
+          .replaceAll('ü', 'u')
+          .replaceAll('Ü', 'U')
+          .replaceAll('ş', 's')
+          .replaceAll('Ş', 'S')
+          .replaceAll('ö', 'o')
+          .replaceAll('Ö', 'O')
+          .replaceAll('ç', 'c')
+          .replaceAll('Ç', 'C');
+      }
+      
+      // Başlık adını düzelt
+      final pdfTitle = fixTurkishChars('OSM YAPI Hesaplama Raporu');
       
       // PDF'e içerik ekle
       pdf.addPage(
@@ -572,13 +598,13 @@ class CalculateController extends GetxController {
                   pw.SizedBox(height: 10),
                   pw.Row(
                     children: [
-                      pw.Expanded(child: pw.Text('Excel Tipi: ${calculation.excelType}')),
+                      pw.Expanded(child: pw.Text('Excel Tipi: ${fixTurkishChars(calculation.excelType)}')),
                       pw.Expanded(child: pw.Text('Urun Sayisi: ${calculation.productCount}')),
                     ],
                   ),
                   if (calculation.customerName.isNotEmpty) ...[
                     pw.SizedBox(height: 5),
-                    pw.Text('Musteri/Kurum: ${calculation.customerName}',
+                    pw.Text('Musteri/Kurum: ${fixTurkishChars(calculation.customerName)}',
                       style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
                     ),
                   ],
@@ -615,11 +641,11 @@ class CalculateController extends GetxController {
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Profil Boyu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Miktar', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Paket', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Birim Fiyat', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
@@ -634,23 +660,33 @@ class CalculateController extends GetxController {
                     children: [
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(product.containsKey('ÜRÜN KODU') ? product['ÜRÜN KODU'].toString() : ''),
+                        child: pw.Text(
+                          product.containsKey('ÜRÜN KODU') ? 
+                          fixTurkishChars(product['ÜRÜN KODU'].toString()) : ''
+                        ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(product.containsKey('ÜRÜN ADI') ? product['ÜRÜN ADI'].toString() : ''),
+                        child: pw.Text(
+                          product.containsKey('ÜRÜN ADI') ? 
+                          fixTurkishChars(product['ÜRÜN ADI'].toString()) : ''
+                        ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(product.containsKey('profilBoyuDegeri') 
-                          ? '${product['profilBoyuDegeri'].toString()} m' 
-                          : '1.0 m'),
+                        // Miktar için profilBoyuDegeri veya toplamDeger'i kullan
+                        child: pw.Text(
+                          product.containsKey('profilBoyuDegeri') ? 
+                          '${product['profilBoyuDegeri'].toStringAsFixed(2)}' : 
+                          (product.containsKey('toplamDeger') ? 
+                          '${product['toplamDeger'].toStringAsFixed(2)}' : '1.0')
+                        ),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(product.containsKey('paketDegeri') 
-                          ? '${product['paketDegeri'].toString()}' 
-                          : '1'),
+                        child: pw.Text(product.containsKey('FİYAT (Metre)') 
+                          ? '${product['FİYAT (Metre)'].toString()} TL' 
+                          : ''),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
