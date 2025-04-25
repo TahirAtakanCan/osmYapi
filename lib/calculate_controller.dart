@@ -274,19 +274,36 @@ class CalculateController extends GetxController {
         
         // Eğer fiyat sütunu bulunabilmişse hesapla
         if (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) {
-          // Toplamı ürün fiyatı ile çarp
+          
           var fiyatValue = product[fiyatColumn];
           double metreFiyati = fiyatValue is double ? fiyatValue : double.tryParse(fiyatValue.toString()) ?? 0.0;
           double urunTutari = metreFiyati * toplamDeger;
           total += urunTutari;
           
-          // Hesaplanan değerleri ürün bilgisine ekle (sonraki gösterimler için)
-          product['hesaplananTutar'] = urunTutari;
-          product['toplamDeger'] = toplamDeger;
-          product['profilBoyuDegeri'] = profilBoyuValue;
-          product['paketDegeri'] = paketValue;
-          selectedProducts[i] = product; // Gözlenebilir diziyi güncelle
+          
+          Map<String, dynamic> updatedProduct = Map<String, dynamic>.from(product);
+          updatedProduct['hesaplananTutar'] = urunTutari;
+          updatedProduct['toplamDeger'] = toplamDeger;
+          updatedProduct['profilBoyuDegeri'] = profilBoyuValue;
+          updatedProduct['paketDegeri'] = paketValue;
+          
+         
+          updatedProduct['fiyatDegeri'] = metreFiyati;
+          if (!updatedProduct.containsKey('FİYAT (Metre)')) {
+            updatedProduct['FİYAT (Metre)'] = metreFiyati;
+          }
+          
+          selectedProducts[i] = updatedProduct; 
         }
+      }
+    }
+    
+    
+    print("Toplam tutar hesaplaması - Ürün sayısı: ${selectedProducts.length}");
+    if (selectedProducts.isNotEmpty) {
+      print("İlk ürün içeriği: ${selectedProducts[0]}");
+      if (selectedProducts[0].containsKey('FİYAT (Metre)')) {
+        print("FİYAT (Metre) değeri mevcut: ${selectedProducts[0]['FİYAT (Metre)']}");
       }
     }
     
@@ -384,7 +401,7 @@ class CalculateController extends GetxController {
       } else {
         // Alternatif isimler
         for (var key in excelData[0].keys) {
-          if (key.toLowerCase().contains('fiyat') || key.toLowerCase().contains('ücret') || 
+          if (key.toLowerCase().contains('fiyat') || key.toLowerCase().contains('ucret') || 
               key.toLowerCase().contains('tutar') || key.toLowerCase().contains('price')) {
             fiyatColumn = key;
             break;
@@ -423,22 +440,58 @@ class CalculateController extends GetxController {
   
   // Hesaplamayı kaydet
   Future<void> saveCalculation(String customerName) async {
-    // Eğer en az 3 ürün eklenmişse kaydet
-    if (selectedProducts.length >= 2) {
+    
+    if (selectedProducts.length >= 0) {
+      // Ürün verilerini kopyala ve fiyat bilgilerinin kalıcı olmasını sağla
+      final List<Map<String, dynamic>> productCopies = [];
+
+      for (var product in selectedProducts) {
+        Map<String, dynamic> copy = Map<String, dynamic>.from(product);
+        
+        // Birim fiyat bilgisini kontrol et ve eğer yoksa ekle
+        if (!copy.containsKey('FİYAT (Metre)') && copy.containsKey(fiyatColumn)) {
+          copy['FİYAT (Metre)'] = copy[fiyatColumn];
+        }
+        
+        // Fiyat bilgisi başka bir yerde olabilir - tüm olası alanları kontrol et
+        if (!copy.containsKey('FİYAT (Metre)') && copy.containsKey('fiyatDegeri')) {
+          copy['FİYAT (Metre)'] = copy['fiyatDegeri'];
+        }
+        
+        // Mevcut hesaplanan değerlerin doğru olduğundan emin ol
+        if (copy.containsKey('hesaplananTutar') && copy.containsKey('toplamDeger')) {
+          print("Ürün fiyatı: ${copy['FİYAT (Metre)']}, Toplam değer: ${copy['toplamDeger']}, Tutar: ${copy['hesaplananTutar']}");
+        }
+        
+        productCopies.add(copy);
+      }
+      
       final calculation = CalculationHistory(
         date: DateTime.now(),
         excelType: excelType,
-        productCount: selectedProducts.length,
+        productCount: productCopies.length,
         totalAmount: toplamTutar.value,
         netAmount: netTutar.value,
-        products: selectedProducts.map((p) => Map<String, dynamic>.from(p)).toList(),
+        products: productCopies,
         customerName: customerName, // Müşteri/kurum adı kaydediliyor
       );
+      
+      // Debug için ürün içeriklerini kontrol et
+      print("Kaydedilecek ürün sayısı: ${calculation.products.length}");
+      if (calculation.products.isNotEmpty) {
+        print("İlk ürün verileri: ${calculation.products[0]}");
+        
+        if (calculation.products[0].containsKey('FİYAT (Metre)')) {
+          print("FİYAT (Metre) değeri: ${calculation.products[0]['FİYAT (Metre)']}");
+        } else {
+          print("UYARI: FİYAT (Metre) değeri yok. Mevcut alanlar: ${calculation.products[0].keys.toList()}");
+        }
+      }
       
       // Geçmişe ekle
       calculationHistory.insert(0, calculation);
       
-      // Maksimum 10 kayıt tut
+      // Maksimum kayıt tut
       if (calculationHistory.length > maxHistoryCount) {
         calculationHistory.removeRange(maxHistoryCount, calculationHistory.length);
       }
@@ -477,8 +530,60 @@ class CalculateController extends GetxController {
   }
 
   // Hesaplama geçmişi için PDF oluştur
-  static Future<File?> generateCalculationPdf(CalculationHistory calculation, {String fiyatColumn = 'FİYAT (Metre)'}) async {
+  static Future<File?> generateCalculationPdf(CalculationHistory calculation, {String? fiyatColumn}) async {
     try {
+      // Debug bilgileri - Ürün analizi
+      print("PDF OLUŞTURMA BAŞLATILIYOR...");
+      print("Ürün sayısı: ${calculation.products.length}");
+      
+      if (calculation.products.isNotEmpty) {
+        print("İlk ürün içeriği: ${calculation.products[0]}");
+        print("Mevcut anahtar listesi: ${calculation.products[0].keys.toList()}");
+        
+        // Ürünlerin fiyat bilgilerini içerip içermediğini kontrol et
+        bool containsPrice = false;
+        String usedPriceColumn = "";
+        
+        // Olası fiyat alanları - öncelikli olarak bunları arayacağız
+        List<String> possiblePriceColumns = [
+          'FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE'
+        ];
+        
+        for (var priceCol in possiblePriceColumns) {
+          if (calculation.products[0].containsKey(priceCol)) {
+            containsPrice = true;
+            usedPriceColumn = priceCol;
+            print("Kullanılacak fiyat sütunu bulundu: $priceCol");
+            break;
+          }
+        }
+        
+        // Eğer hiçbir fiyat alanı bulunamadıysa, herhangi bir sayısal alan ara
+        if (!containsPrice) {
+          for (var key in calculation.products[0].keys) {
+            if (calculation.products[0][key] is num) {
+              var value = calculation.products[0][key];
+              // Olası bir fiyat olabilecek değerler (10'dan büyük sayılar)
+              if (value is num && value > 10) {
+                containsPrice = true;
+                usedPriceColumn = key;
+                print("Olası fiyat sütunu bulundu: $key = $value");
+                break;
+              }
+            }
+          }
+        }
+        
+        // Eğer hala fiyat alanı bulunamadıysa, uyarı logla
+        if (!containsPrice) {
+          print("UYARI: Ürünlerde herhangi bir fiyat alanı bulunamadı!");
+        } else {
+          print("Fiyat sütunu '$usedPriceColumn' kullanılacak.");
+          // Parametre olarak gelen fiyatColumn'u güncelle
+          fiyatColumn = usedPriceColumn;
+        }
+      }
+      
       // Android sürümünü kontrol et
       bool needsPermission = false;
       if (Platform.isAndroid) {
@@ -708,10 +813,54 @@ class CalculateController extends GetxController {
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
-                          (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) ? 
-                          '${product[fiyatColumn].toString()} TL' : 
-                          (product.containsKey('FİYAT (Metre)') ? 
-                          '${product['FİYAT (Metre)'].toString()} TL' : '')
+                          (() {
+                            // Tüm olası fiyat alanlarını kontrol et ve ilk bulunanı kullan
+                            List<String> priceFields = [
+                              'FİYAT (Metre)', 'fiyatDegeri', 'FIYAT (Metre)', 'FIYAT', 'fiyat', 'METER_PRICE'
+                            ];
+                            
+                            // fiyatColumn parametresini listeye ekle, eğer null değilse
+                            if (fiyatColumn != null && fiyatColumn.isNotEmpty) {
+                              priceFields.add(fiyatColumn);
+                            }
+                            
+                            // Her bir olası fiyat alanını kontrol et
+                            for (var field in priceFields) {
+                              if (product.containsKey(field)) {
+                                var fiyat = product[field];
+                                print("Bulunan fiyat alanı: $field = $fiyat");
+                                
+                                // Fiyat sayı ise
+                                if (fiyat is num) {
+                                  return '${fiyat.toStringAsFixed(2)} TL';
+                                }
+                                // Fiyat metin ise 
+                                else if (fiyat is String) {
+                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
+                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
+                                  if (parsedFiyat != null) {
+                                    return '${parsedFiyat.toStringAsFixed(2)} TL';
+                                  }
+                                  return '$fiyat TL';
+                                }
+                              }
+                            }
+                            
+                            // Ürün içeriğindeki tüm sayısal değerleri kontrol et
+                            for (var key in product.keys) {
+                              var value = product[key];
+                              if (value is num && value > 10 && 
+                                  !['hesaplananTutar', 'toplamDeger', 'profilBoyuDegeri', 'paketDegeri']
+                                      .contains(key)) {
+                                print("Alternatif sayısal alan bulundu: $key = $value");
+                                return '${value.toStringAsFixed(2)} TL';
+                              }
+                            }
+                            
+                            // Hiçbir fiyat bulunamadı
+                            return '';
+                          })(),
+                          style: const pw.TextStyle(fontSize: 9),
                         ),
                       ),
                       pw.Padding(
