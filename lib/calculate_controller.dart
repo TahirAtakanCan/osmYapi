@@ -807,7 +807,7 @@ class CalculateController extends GetxController {
                       children: [
                         pw.Text('OSM YAPI', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
                         pw.SizedBox(height: 5),
-                        pw.Text('Hesaplama Raporu', style: pw.TextStyle(fontSize: 16)),
+                        pw.Text('Satis Raporu', style: pw.TextStyle(fontSize: 16)),
                       ],
                     )
                   ]
@@ -831,7 +831,7 @@ class CalculateController extends GetxController {
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Hesaplama Detaylari', 
+                      pw.Text('Satis Detaylari', 
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)
                       ),
                       pw.Text('Tarih: $formattedDate', style: const pw.TextStyle(fontSize: 12)),
@@ -1109,20 +1109,21 @@ class CalculateController extends GetxController {
             
             // Tutar Özeti
             pw.Container(
-              padding: const pw.EdgeInsets.all(10),
+              /*padding: const pw.EdgeInsets.all(10),
               decoration: pw.BoxDecoration(
                 borderRadius: pw.BorderRadius.circular(8),
                 border: pw.Border.all(color: PdfColors.grey400),
-              ),
+              ),*/
               child: pw.Column(
                 children: [
-                  pw.Row(
+                  /*pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('Toplam Tutar', style: const pw.TextStyle(fontSize: 12)),
                       pw.Text('${calculation.totalAmount.toStringAsFixed(2)} TL', style: const pw.TextStyle(fontSize: 12)),
                     ],
                   ),
+                   İskonto ve KDV bilgileri gizlendi
                   if (hasIskonto) ...[
                     pw.SizedBox(height: 5),
                     pw.Row(
@@ -1143,6 +1144,7 @@ class CalculateController extends GetxController {
                       ],
                     ),
                   ],
+                  */
                   pw.SizedBox(height: 5),
                   pw.Divider(color: PdfColors.grey300),
                   pw.SizedBox(height: 5),
