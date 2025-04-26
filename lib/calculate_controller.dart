@@ -445,6 +445,10 @@ class CalculateController extends GetxController {
       // Ürün verilerini kopyala ve fiyat bilgilerinin kalıcı olmasını sağla
       final List<Map<String, dynamic>> productCopies = [];
 
+      // Iskonto ve KDV oranlarını al
+      final iskontoValue = double.tryParse(iskontoController.text) ?? 0.0;
+      final kdvValue = double.tryParse(kdvController.text) ?? 0.0;
+
       for (var product in selectedProducts) {
         Map<String, dynamic> copy = Map<String, dynamic>.from(product);
         
@@ -457,6 +461,10 @@ class CalculateController extends GetxController {
         if (!copy.containsKey('FİYAT (Metre)') && copy.containsKey('fiyatDegeri')) {
           copy['FİYAT (Metre)'] = copy['fiyatDegeri'];
         }
+        
+        // İskonto ve KDV değerlerini ürüne ekle
+        copy['iskontoOrani'] = iskontoValue;
+        copy['kdvOrani'] = kdvValue;
         
         // Mevcut hesaplanan değerlerin doğru olduğundan emin ol
         if (copy.containsKey('hesaplananTutar') && copy.containsKey('toplamDeger')) {
@@ -718,6 +726,49 @@ class CalculateController extends GetxController {
       final dateFormatter = DateFormat('dd.MM.yyyy HH:mm');
       final formattedDate = dateFormatter.format(calculation.date);
       
+      // İskonto ve KDV oranlarını kontrol et
+      double iskontoOrani = 0.0;
+      double kdvOrani = 0.0;
+      bool hasIskonto = false;
+      bool hasKdv = false;
+      
+      // Ürünlerdeki iskonto ve kdv bilgilerini kontrol et
+      if (calculation.products.isNotEmpty) {
+        // İskonto kontrolü
+        if (calculation.products[0].containsKey('iskontoOrani')) {
+          var iskontoValue = calculation.products[0]['iskontoOrani'];
+          if (iskontoValue is num && iskontoValue > 0) {
+            iskontoOrani = iskontoValue.toDouble();
+            hasIskonto = true;
+          }
+        }
+        
+        // KDV kontrolü
+        if (calculation.products[0].containsKey('kdvOrani')) {
+          var kdvValue = calculation.products[0]['kdvOrani'];
+          if (kdvValue is num && kdvValue > 0) {
+            kdvOrani = kdvValue.toDouble();
+            hasKdv = true;
+          }
+        }
+      }
+      
+      // Hesaplanan toplam ve net tutar arasındaki fark hesaplanarak iskonto ve kdv olup olmadığını tespit et
+      if (!hasIskonto && calculation.totalAmount > 0 && calculation.netAmount > 0) {
+        if (calculation.totalAmount != calculation.netAmount) {
+          hasIskonto = true;
+          hasKdv = true;
+          // İskonto oranını yaklaşık olarak hesapla
+          if (calculation.totalAmount > calculation.netAmount) {
+            // Toplam tutar net tutardan büyükse iskonto uygulanmış olabilir
+            iskontoOrani = 100 * (1 - calculation.netAmount / calculation.totalAmount);
+          } else {
+            // Net tutar toplam tutardan büyükse KDV uygulanmış olabilir
+            kdvOrani = 100 * (calculation.netAmount / calculation.totalAmount - 1);
+          }
+        }
+      }
+      
       // PDF içeriğini oluştururken Türkçe harfleri düzeltme fonksiyonu
       String fixTurkishChars(String text) {
         // Türkçe karakterleri ASCII karşılıklarına dönüştür
@@ -816,7 +867,21 @@ class CalculateController extends GetxController {
                 if (hasPaket) (hasProfilBoyu ? 3 : 2): const pw.FlexColumnWidth(1),    // Paket (sadece kullanılmışsa)
                 (hasProfilBoyu && hasPaket) ? 4 : (hasProfilBoyu || hasPaket ? 3 : 2): const pw.FlexColumnWidth(1.2),  // Toplam Metretül
                 (hasProfilBoyu && hasPaket) ? 5 : (hasProfilBoyu || hasPaket ? 4 : 3): const pw.FlexColumnWidth(1.2),  // Liste Fiyatı
-                (hasProfilBoyu && hasPaket) ? 6 : (hasProfilBoyu || hasPaket ? 5 : 4): const pw.FlexColumnWidth(1.5),  // Toplam
+                
+                // Iskontolu tutar sütunu
+                if (hasIskonto) ((hasProfilBoyu && hasPaket) ? 6 : (hasProfilBoyu || hasPaket ? 5 : 4)): const pw.FlexColumnWidth(1.2),
+                
+                // KDV'li tutar sütunu
+                if (hasKdv) ((hasProfilBoyu && hasPaket) ? (hasIskonto ? 7 : 6) : 
+                            (hasProfilBoyu || hasPaket ? (hasIskonto ? 6 : 5) : 
+                            (hasIskonto ? 5 : 4))): const pw.FlexColumnWidth(1.2),
+                
+                // Toplam sütunu - en son sütun
+                ((hasProfilBoyu && hasPaket) ? 
+                    (hasIskonto ? (hasKdv ? 8 : 7) : (hasKdv ? 7 : 6)) : 
+                    (hasProfilBoyu || hasPaket ? 
+                        (hasIskonto ? (hasKdv ? 7 : 6) : (hasKdv ? 6 : 5)) : 
+                        (hasIskonto ? (hasKdv ? 6 : 5) : (hasKdv ? 5 : 4)))): const pw.FlexColumnWidth(1.5),
               },
               children: [
                 // Tablo Başlığı
@@ -846,6 +911,14 @@ class CalculateController extends GetxController {
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
                       child: pw.Text('Liste Fiyati', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    if (hasIskonto) pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('Iskontolu Birim Fiyat', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                    ),
+                    if (hasKdv) pw.Padding(
+                      padding: const pw.EdgeInsets.all(5),
+                      child: pw.Text('KDV\'li Birim Fiyat', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
@@ -909,7 +982,7 @@ class CalculateController extends GetxController {
                           (() {
                             // Tüm olası fiyat alanlarını kontrol et ve ilk bulunanı kullan
                             List<String> priceFields = [
-                              'FİYAT (Metre)', 'fiyatDegeri', 'FIYAT (Metre)', 'FIYAT', 'fiyat', 'METER_PRICE'
+                              'FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE'
                             ];
                             
                             // fiyatColumn parametresini listeye ekle, eğer null değilse
@@ -956,6 +1029,71 @@ class CalculateController extends GetxController {
                           style: const pw.TextStyle(fontSize: 12),
                         ),
                       ),
+                      if (hasIskonto) pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          (() {
+                            // Liste fiyatını bul
+                            double listeFiyati = 0.0;
+                            for (var field in ['FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE']) {
+                              if (product.containsKey(field)) {
+                                var fiyat = product[field];
+                                if (fiyat is num) {
+                                  listeFiyati = fiyat.toDouble();
+                                  break;
+                                } else if (fiyat is String) {
+                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
+                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
+                                  if (parsedFiyat != null) {
+                                    listeFiyati = parsedFiyat;
+                                    break;
+                                  }
+                                }
+                              }
+                            }
+                            
+                            // İskontolu liste fiyatını hesapla (birim fiyata iskonto uygulanır)
+                            double iskontoluBirimFiyat = listeFiyati * (1 - iskontoOrani / 100);
+                            return '${iskontoluBirimFiyat.toStringAsFixed(2)} TL';
+                          })(),
+                          style: const pw.TextStyle(fontSize: 12),
+                        ),
+                      ),
+                      if (hasKdv) pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text(
+                          (() {
+                            // Liste fiyatını bul
+                            double listeFiyati = 0.0;
+                            for (var field in ['FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE']) {
+                              if (product.containsKey(field)) {
+                                var fiyat = product[field];
+                                if (fiyat is num) {
+                                  listeFiyati = fiyat.toDouble();
+                                  break;
+                                } else if (fiyat is String) {
+                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
+                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
+                                  if (parsedFiyat != null) {
+                                    listeFiyati = parsedFiyat;
+                                    break;
+                                  }
+                                }
+                              }
+                            }
+                            
+                            // Önce iskonto uygulanmış birim fiyat hesaplanır
+                            double iskontoluBirimFiyat = hasIskonto 
+                                ? listeFiyati * (1 - iskontoOrani / 100) 
+                                : listeFiyati;
+                                
+                            // KDV'li birim fiyat, iskontolu fiyat üzerine KDV uygulanarak hesaplanır
+                            double kdvliBirimFiyat = iskontoluBirimFiyat * (1 + kdvOrani / 100);
+                            return '${kdvliBirimFiyat.toStringAsFixed(2)} TL';
+                          })(),
+                          style: const pw.TextStyle(fontSize: 12),
+                        ),
+                      ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(product.containsKey('hesaplananTutar') 
@@ -985,6 +1123,26 @@ class CalculateController extends GetxController {
                       pw.Text('${calculation.totalAmount.toStringAsFixed(2)} TL', style: const pw.TextStyle(fontSize: 12)),
                     ],
                   ),
+                  if (hasIskonto) ...[
+                    pw.SizedBox(height: 5),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('Iskonto Oranı', style: const pw.TextStyle(fontSize: 12)),
+                        pw.Text('%${iskontoOrani.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ],
+                  if (hasKdv) ...[
+                    pw.SizedBox(height: 5),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                      children: [
+                        pw.Text('KDV Oranı', style: const pw.TextStyle(fontSize: 12)),
+                        pw.Text('%${kdvOrani.toStringAsFixed(0)}', style: const pw.TextStyle(fontSize: 12)),
+                      ],
+                    ),
+                  ],
                   pw.SizedBox(height: 5),
                   pw.Divider(color: PdfColors.grey300),
                   pw.SizedBox(height: 5),
