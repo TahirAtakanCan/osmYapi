@@ -703,12 +703,21 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       child: ElevatedButton(
         onPressed: () {
-          Navigator.push(
-            context, 
+          Navigator.of(context).push(
             MaterialPageRoute(
               builder: (context) => CalculateScreen(buttonType: text),
             ),
-          );
+          ).then((_) {
+            // HomeScreen'e geri dönüldüğünde ürünleri temizle
+            final controller = Get.find<CalculateController>(tag: text);
+            controller.selectedProducts.clear();
+            controller.profilBoyuControllers.forEach((_, controller) => controller.dispose());
+            controller.paketControllers.forEach((_, controller) => controller.dispose());
+            controller.profilBoyuControllers.clear();
+            controller.paketControllers.clear();
+            controller.calculateTotalPrice();
+            print("HomeScreen'e dönüldü: ${text} hesaplama verileri temizlendi.");
+          });
         },
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.symmetric(

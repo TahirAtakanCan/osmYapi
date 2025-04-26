@@ -232,6 +232,9 @@ class _CalculateScreenState extends State<CalculateScreen> {
               onPressed: () async {
                 Navigator.of(context).pop();
                 await controller.saveCalculation(customerNameController.text);
+                
+                // Ürün listesi HomeScreen'e dönüldüğünde temizlenecek
+                
                 Get.snackbar(
                   'Başarılı',
                   'Hesaplama başarıyla kaydedildi',
