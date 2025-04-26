@@ -1050,9 +1050,60 @@ class CalculateController extends GetxController {
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(product.containsKey('hesaplananTutar') 
-                          ? '${product['hesaplananTutar'].toStringAsFixed(2)} TL' 
-                          : ''),
+                        child: pw.Text(
+                          (() {
+                            // Toplam metretül değerini al
+                            double toplamMetretul = 1.0;
+                            if (product.containsKey('toplamDeger')) {
+                              var value = product['toplamDeger'];
+                              toplamMetretul = value is num ? value.toDouble() : 1.0;
+                            }
+                            
+                            // Liste fiyatını bul
+                            double listeFiyati = 0.0;
+                            for (var field in ['FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE']) {
+                              if (product.containsKey(field)) {
+                                var fiyat = product[field];
+                                if (fiyat is num) {
+                                  listeFiyati = fiyat.toDouble();
+                                  break;
+                                } else if (fiyat is String) {
+                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
+                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
+                                  if (parsedFiyat != null) {
+                                    listeFiyati = parsedFiyat;
+                                    break;
+                                  }
+                                }
+                              }
+                            }
+                            
+                            // İskontolu birim fiyatı hesapla
+                            double iskontoluBirimFiyat = hasIskonto 
+                                ? listeFiyati * (1 - iskontoOrani / 100) 
+                                : listeFiyati;
+                            
+                            // KDV'li birim fiyat hesaplanır
+                            double kdvliBirimFiyat = hasKdv 
+                                ? iskontoluBirimFiyat * (1 + kdvOrani / 100)
+                                : iskontoluBirimFiyat;
+                            
+                            // İstenen toplam tutarı hesapla
+                            // 1. Eğer KDV yoksa iskontolu birim fiyat * toplam metretül
+                            // 2. Eğer KDV varsa KDV'li birim fiyat * toplam metretül
+                            double hesaplananToplam;
+                            if (hasKdv) {
+                              // KDV varsa, KDV'li birim fiyat ile çarp
+                              hesaplananToplam = kdvliBirimFiyat * toplamMetretul;
+                            } else {
+                              // KDV yoksa, iskontolu birim fiyat ile çarp
+                              hesaplananToplam = iskontoluBirimFiyat * toplamMetretul;
+                            }
+                            
+                            return '${hesaplananToplam.toStringAsFixed(2)} TL';
+                          })(),
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                        ),
                       ),
                     ],
                   ),
