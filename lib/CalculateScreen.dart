@@ -34,8 +34,6 @@ class _CalculateScreenState extends State<CalculateScreen> {
       final String excelFileName = widget.buttonType == '58 nolu'
           ? 'assets/excel/58nolu.xlsx'
           : 'assets/excel/59nolu.xlsx';
-
-      print('Excel dosyası yükleniyor: $excelFileName');
       
       final ByteData data = await rootBundle.load(excelFileName);
       var bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
@@ -44,11 +42,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
       List<Map<String, dynamic>> tempData = [];
 
       for (var table in excel.tables.keys) {
-        print('Excel tablosu okunuyor: $table');
-        
         var rows = excel.tables[table]!.rows;
         if (rows.isEmpty) {
-          print('Tablo boş: $table');
           continue;
         }
         
@@ -57,8 +52,6 @@ class _CalculateScreenState extends State<CalculateScreen> {
         for (var cell in headerRow) {
           headers.add(cell?.value?.toString() ?? '');
         }
-        
-        print("Excel sütun başlıkları: $headers");
         
         for (var i = 1; i < rows.length; i++) {
           var row = rows[i];
@@ -92,14 +85,11 @@ class _CalculateScreenState extends State<CalculateScreen> {
             
             if (rowData.containsKey(headers[0]) && 
                 rowData[headers[0]].toString().isNotEmpty) {
-              print("Ürün: ${rowData[headers[0]]} yükleniyor");
               tempData.add(rowData);
             }
           }
         }
       }
-
-      print('Toplam ${tempData.length} ürün yüklendi');
       
       controller.setExcelData(tempData);
       
@@ -109,7 +99,6 @@ class _CalculateScreenState extends State<CalculateScreen> {
       }
       
     } catch (e) {
-      print('Excel veri okuma hatası: $e');
       controller.isLoading.value = false;
     }
   }

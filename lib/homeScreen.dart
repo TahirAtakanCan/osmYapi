@@ -716,7 +716,6 @@ class _HomeScreenState extends State<HomeScreen> {
             controller.profilBoyuControllers.clear();
             controller.paketControllers.clear();
             controller.calculateTotalPrice();
-            print("HomeScreen'e dönüldü: ${text} hesaplama verileri temizlendi.");
           });
         },
         style: ElevatedButton.styleFrom(

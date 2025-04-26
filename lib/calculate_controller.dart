@@ -298,15 +298,6 @@ class CalculateController extends GetxController {
       }
     }
     
-    
-    print("Toplam tutar hesaplaması - Ürün sayısı: ${selectedProducts.length}");
-    if (selectedProducts.isNotEmpty) {
-      print("İlk ürün içeriği: ${selectedProducts[0]}");
-      if (selectedProducts[0].containsKey('FİYAT (Metre)')) {
-        print("FİYAT (Metre) değeri mevcut: ${selectedProducts[0]['FİYAT (Metre)']}");
-      }
-    }
-    
     toplamTutar.value = total;
     _calculateNetTutar();
   }
@@ -420,8 +411,6 @@ class CalculateController extends GetxController {
           }
         }
       }
-
-      print('Sütun isimleri: Kod=$codeColumn, Ad=$nameColumn, ProfilBoyu=$profilBoyuColumn, Paket=$paketColumn, Fiyat=$fiyatColumn');
     }
   }
 
@@ -466,11 +455,6 @@ class CalculateController extends GetxController {
         copy['iskontoOrani'] = iskontoValue;
         copy['kdvOrani'] = kdvValue;
         
-        // Mevcut hesaplanan değerlerin doğru olduğundan emin ol
-        if (copy.containsKey('hesaplananTutar') && copy.containsKey('toplamDeger')) {
-          print("Ürün fiyatı: ${copy['FİYAT (Metre)']}, Toplam değer: ${copy['toplamDeger']}, Tutar: ${copy['hesaplananTutar']}");
-        }
-        
         productCopies.add(copy);
       }
       
@@ -483,18 +467,6 @@ class CalculateController extends GetxController {
         products: productCopies,
         customerName: customerName, // Müşteri/kurum adı kaydediliyor
       );
-      
-      // Debug için ürün içeriklerini kontrol et
-      print("Kaydedilecek ürün sayısı: ${calculation.products.length}");
-      if (calculation.products.isNotEmpty) {
-        print("İlk ürün verileri: ${calculation.products[0]}");
-        
-        if (calculation.products[0].containsKey('FİYAT (Metre)')) {
-          print("FİYAT (Metre) değeri: ${calculation.products[0]['FİYAT (Metre)']}");
-        } else {
-          print("UYARI: FİYAT (Metre) değeri yok. Mevcut alanlar: ${calculation.products[0].keys.toList()}");
-        }
-      }
       
       // Geçmişe ekle
       calculationHistory.insert(0, calculation);
@@ -516,7 +488,7 @@ class CalculateController extends GetxController {
       final historyJsonList = calculationHistory.map((calc) => calc.toJson()).toList();
       await prefs.setString('calculation_history', jsonEncode(historyJsonList));
     } catch (e) {
-      print('Hesaplama geçmişi kaydedilemedi: $e');
+      // Hata yakalandı ancak print kaldırıldı
     }
   }
   
@@ -533,7 +505,7 @@ class CalculateController extends GetxController {
             .toList();
       }
     } catch (e) {
-      print('Hesaplama geçmişi yüklenemedi: $e');
+      // Hata yakalandı ancak print kaldırıldı
     }
   }
 
@@ -555,7 +527,7 @@ class CalculateController extends GetxController {
         duration: const Duration(seconds: 3),
       );
     } catch (e) {
-      print('Hesaplama geçmişi silinemedi: $e');
+      // Hata yakalandı ancak print kaldırıldı
       Get.snackbar(
         'Hata',
         'Hesaplama geçmişi silinirken bir hata oluştu: $e',
@@ -586,7 +558,7 @@ class CalculateController extends GetxController {
         duration: const Duration(seconds: 3),
       );
     } catch (e) {
-      print('Seçilen hesaplamalar silinemedi: $e');
+      // Hata yakalandı ancak print kaldırıldı
       Get.snackbar(
         'Hata',
         'Hesaplamalar silinirken bir hata oluştu: $e',
@@ -600,10 +572,6 @@ class CalculateController extends GetxController {
   // Hesaplama geçmişi için PDF oluştur
   static Future<File?> generateCalculationPdf(CalculationHistory calculation, {String? fiyatColumn}) async {
     try {
-      // Debug bilgileri - Ürün analizi
-      print("PDF OLUŞTURMA BAŞLATILIYOR...");
-      print("Ürün sayısı: ${calculation.products.length}");
-      
       // Kullanılan alanları kontrol et
       bool hasProfilBoyu = false;
       bool hasPaket = false;
@@ -628,12 +596,6 @@ class CalculateController extends GetxController {
           }
         }
         
-        print("Profil Boyu kullanılmış mı: $hasProfilBoyu");
-        print("Paket kullanılmış mı: $hasPaket");
-        
-        print("İlk ürün içeriği: ${calculation.products[0]}");
-        print("Mevcut anahtar listesi: ${calculation.products[0].keys.toList()}");
-        
         // Ürünlerin fiyat bilgilerini içerip içermediğini kontrol et
         bool containsPrice = false;
         String usedPriceColumn = "";
@@ -647,7 +609,6 @@ class CalculateController extends GetxController {
           if (calculation.products[0].containsKey(priceCol)) {
             containsPrice = true;
             usedPriceColumn = priceCol;
-            print("Kullanılacak fiyat sütunu bulundu: $priceCol");
             break;
           }
         }
@@ -661,19 +622,14 @@ class CalculateController extends GetxController {
               if (value is num && value > 10) {
                 containsPrice = true;
                 usedPriceColumn = key;
-                print("Olası fiyat sütunu bulundu: $key = $value");
                 break;
               }
             }
           }
         }
         
-        // Eğer hala fiyat alanı bulunamadıysa, uyarı logla
-        if (!containsPrice) {
-          print("UYARI: Ürünlerde herhangi bir fiyat alanı bulunamadı!");
-        } else {
-          print("Fiyat sütunu '$usedPriceColumn' kullanılacak.");
-          // Parametre olarak gelen fiyatColumn'u güncelle
+        // Parametre olarak gelen fiyatColumn'u güncelle
+        if (containsPrice) {
           fiyatColumn = usedPriceColumn;
         }
       }
@@ -994,7 +950,6 @@ class CalculateController extends GetxController {
                             for (var field in priceFields) {
                               if (product.containsKey(field)) {
                                 var fiyat = product[field];
-                                print("Bulunan fiyat alanı: $field = $fiyat");
                                 
                                 // Fiyat sayı ise
                                 if (fiyat is num) {
@@ -1018,7 +973,6 @@ class CalculateController extends GetxController {
                               if (value is num && value > 10 && 
                                   !['hesaplananTutar', 'toplamDeger', 'profilBoyuDegeri', 'paketDegeri']
                                       .contains(key)) {
-                                print("Alternatif sayısal alan bulundu: $key = $value");
                                 return '${value.toStringAsFixed(2)} TL';
                               }
                             }
@@ -1288,7 +1242,7 @@ class CalculateController extends GetxController {
       
       return file;
     } catch (e) {
-      print('PDF oluşturma hatası: $e');
+      // Hata yakalandı ancak print kaldırıldı
       Get.snackbar(
         'Hata',
         'PDF oluşturulurken bir hata oluştu: $e',
