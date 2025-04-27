@@ -27,6 +27,24 @@ class _CalculateScreenState extends State<CalculateScreen> {
     
     controller.setExcelType(widget.buttonType);
     _loadExcelData();
+    
+    // Eğer düzenleme modu ise, hesaplamayı yükle
+    if (CalculateController.calculationToEdit != null && 
+        CalculateController.calculationToEditIndex != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Excel verisi yüklendikten sonra ürünleri yükle
+        if (!controller.isLoading.value) {
+          controller.loadProductsForEditing();
+        } else {
+          // Excel verisi yüklenene kadar bekle
+          controller.isLoading.listen((isLoading) {
+            if (!isLoading && CalculateController.calculationToEdit != null) {
+              controller.loadProductsForEditing();
+            }
+          });
+        }
+      });
+    }
   }
 
   Future<void> _loadExcelData() async {
@@ -170,7 +188,13 @@ class _CalculateScreenState extends State<CalculateScreen> {
   }
 
   Future<void> _showCustomerNamePopup(BuildContext context) async {
+    // Düzenleme modu için müşteri adını varsayılan olarak ayarla
     TextEditingController customerNameController = TextEditingController();
+    
+    // Eğer düzenleme modunda isek, mevcut müşteri adını kullan
+    if (CalculateController.calculationToEdit != null) {
+      customerNameController.text = CalculateController.calculationToEdit!.customerName;
+    }
 
     return showDialog<void>(
       context: context,
@@ -181,7 +205,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            'Müşteri/Kurum Bilgisi',
+            CalculateController.calculationToEdit != null ? 'Hesaplama Düzenle' : 'Müşteri/Kurum Bilgisi',
             style: TextStyle(
               color: widget.buttonType == '58 nolu' ? Colors.blue.shade800 : Colors.red.shade700,
               fontWeight: FontWeight.bold,
@@ -217,32 +241,76 @@ class _CalculateScreenState extends State<CalculateScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: const Text('Kaydet'),
+              child: Text(CalculateController.calculationToEdit != null ? 'Güncelle' : 'Kaydet'),
               onPressed: () async {
                 Navigator.of(context).pop();
-                await controller.saveCalculation(customerNameController.text);
                 
-                // Ürün listesi HomeScreen'e dönüldüğünde temizlenecek
-                
-                Get.snackbar(
-                  'Başarılı',
-                  'Hesaplama başarıyla kaydedildi',
-                  snackPosition: SnackPosition.TOP,
-                  backgroundColor: Colors.green.shade100,
-                  colorText: Colors.green.shade800,
-                  borderRadius: 10,
-                  margin: const EdgeInsets.all(15),
-                  duration: const Duration(seconds: 3),
-                  icon: const Icon(Icons.check_circle, color: Colors.green),
-                  boxShadows: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    )
-                  ],
-                );
+                if (CalculateController.calculationToEdit != null) {
+                  // Düzenleme modunda - hesaplamayı güncelle
+                  final List<Map<String, dynamic>> productCopies = [];
+                  
+                  // Iskonto ve KDV oranlarını al
+                  final iskontoValue = double.tryParse(controller.iskontoController.text) ?? 0.0;
+                  final kdvValue = double.tryParse(controller.kdvController.text) ?? 0.0;
+
+                  for (var product in controller.selectedProducts) {
+                    Map<String, dynamic> copy = Map<String, dynamic>.from(product);
+                    
+                    // Fiyat bilgilerini ekle
+                    if (!copy.containsKey('FİYAT (Metre)') && copy.containsKey(controller.fiyatColumn)) {
+                      copy['FİYAT (Metre)'] = copy[controller.fiyatColumn];
+                    }
+                    
+                    if (!copy.containsKey('FİYAT (Metre)') && copy.containsKey('fiyatDegeri')) {
+                      copy['FİYAT (Metre)'] = copy['fiyatDegeri'];
+                    }
+                    
+                    // İskonto ve KDV değerlerini ürüne ekle
+                    copy['iskontoOrani'] = iskontoValue;
+                    copy['kdvOrani'] = kdvValue;
+                    
+                    productCopies.add(copy);
+                  }
+                  
+                  final updatedCalculation = CalculationHistory(
+                    date: DateTime.now(), // Güncelleme tarihi
+                    excelType: controller.excelType,
+                    productCount: productCopies.length,
+                    totalAmount: controller.toplamTutar.value,
+                    netAmount: controller.netTutar.value,
+                    products: productCopies,
+                    customerName: customerNameController.text,
+                  );
+                  
+                  // Hesaplamayı güncelle
+                  await CalculateController.updateCalculation(updatedCalculation);
+                  
+                  // Ana ekrana geri dön
+                  Navigator.of(context).pop();
+                } else {
+                  // Yeni hesaplama modunda - hesaplamayı kaydet
+                  await controller.saveCalculation(customerNameController.text);
+                  
+                  Get.snackbar(
+                    'Başarılı',
+                    'Hesaplama başarıyla kaydedildi',
+                    snackPosition: SnackPosition.TOP,
+                    backgroundColor: Colors.green.shade100,
+                    colorText: Colors.green.shade800,
+                    borderRadius: 10,
+                    margin: const EdgeInsets.all(15),
+                    duration: const Duration(seconds: 3),
+                    icon: const Icon(Icons.check_circle, color: Colors.green),
+                    boxShadows: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      )
+                    ],
+                  );
+                }
               },
             ),
           ],

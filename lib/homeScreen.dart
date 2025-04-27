@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'CalculateScreen.dart';
+import 'HistoryScreen.dart';
 import 'calculate_controller.dart';
 import 'package:intl/intl.dart';
 
@@ -12,473 +13,16 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Seçilen hesaplamaları takip etmek için liste
-  final RxList<CalculationHistory> selectedCalculations = <CalculationHistory>[].obs;
-  
   @override
   void initState() {
     super.initState();
     _loadCalculationHistory();
   }
 
-  
   Future<void> _loadCalculationHistory() async {
     await CalculateController.loadHistoryFromStorage();
   }
   
-  
-  void _showCalculationHistoryPopup(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Container(
-            width: double.maxFinite,
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height * 0.8,
-              maxWidth: MediaQuery.of(context).size.width * 0.9,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  decoration: BoxDecoration(
-                    color: Color(0xFF3C3C3C), // Koyu gri/siyah (logo)
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Son Hesaplamalarım',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 20,
-                        ),
-                      ),
-                      Obx(() {
-                        // Seçilen hesaplamalar varsa Sil butonu göster
-                        if (selectedCalculations.isNotEmpty) {
-                          return Padding(
-                            padding: const EdgeInsets.only(top: 10),
-                            child: TextButton.icon(
-                              onPressed: () {
-                                // Seçilen hesaplamaları silme onayı iste
-                                showDialog(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return AlertDialog(
-                                      title: const Text('Seçilenleri Sil'),
-                                      content: Text(
-                                        '${selectedCalculations.length} hesaplamayı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.'
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          child: const Text('İptal'),
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                          },
-                                        ),
-                                        TextButton(
-                                          child: const Text(
-                                            'Sil',
-                                            style: TextStyle(
-                                              color: Colors.red,
-                                              fontWeight: FontWeight.bold
-                                            ),
-                                          ),
-                                          onPressed: () async {
-                                            // Önce dialog'u kapat
-                                            Navigator.of(context).pop();
-                                            // Seçilen hesaplamaları sil
-                                            await CalculateController.deleteSelectedCalculations(
-                                              selectedCalculations.toList()
-                                            );
-                                            // Seçimleri temizle
-                                            selectedCalculations.clear();
-                                          },
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                );
-                              },
-                              icon: const Icon(
-                                Icons.delete_outline,
-                                color: Colors.white70,
-                                size: 18,
-                              ),
-                              label: Text(
-                                '${selectedCalculations.length} Hesaplamayı Sil',
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              style: TextButton.styleFrom(
-                                backgroundColor: Colors.red.withOpacity(0.2),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
-                          );
-                        }
-                        
-                        // Hiç hesaplama yoksa veya hiç hesaplama seçili değilse boş döndür
-                        if (CalculateController.calculationHistory.isEmpty) {
-                          return const SizedBox.shrink();
-                        }
-                        
-                        // Hesaplamalar var ama hiçbiri seçili değil, tümünü sil butonu göster
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 10),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              // Tümünü Seç butonu
-                              TextButton.icon(
-                                onPressed: () {
-                                  // Tüm hesaplamaları seç
-                                  selectedCalculations.assignAll(
-                                    CalculateController.calculationHistory
-                                  );
-                                },
-                                icon: const Icon(
-                                  Icons.select_all,
-                                  color: Colors.white70,
-                                  size: 18,
-                                ),
-                                label: const Text(
-                                  'Tümünü Seç',
-                                  style: TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                style: TextButton.styleFrom(
-                                  backgroundColor: Colors.blue.withOpacity(0.2),
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Obx(() {
-                    final calculations = CalculateController.calculationHistory;
-                    
-                    if (calculations.isEmpty) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(20.0),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.history,
-                                size: 48,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Henüz kaydedilmiş hesaplama bulunmuyor.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 16,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }
-                    
-                    return ListView.builder(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      shrinkWrap: true,
-                      itemCount: calculations.length,
-                      itemBuilder: (context, index) {
-                        final calculation = calculations[index];
-                        final dateFormatter = DateFormat('dd.MM.yyyy HH:mm');
-                        final formattedDate = dateFormatter.format(calculation.date);
-                        
-                        return Card(
-                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          elevation: 3,
-                          child: Obx(() {
-                            final isSelected = selectedCalculations.contains(calculation);
-                            return ExpansionTile(
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15),
-                              ),
-                              tilePadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              title: calculation.customerName.isNotEmpty
-                                  ? Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Text(
-                                        'Müşteri: ${calculation.customerName}',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    )
-                                  : const Text(''),
-                              
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Tarih: $formattedDate',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                '${calculation.excelType} - ${calculation.productCount} Ürün',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Tutar: ${calculation.netAmount.toStringAsFixed(2)} TL',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              // Hesaplamayı seçmek için checkbox ekliyorum
-                              leading: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Checkbox(
-                                    value: isSelected,
-                                    activeColor: calculation.excelType.contains('58')
-                                        ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
-                                        : Color(0xFFF47B20), // Turuncu (logo)
-                                    onChanged: (bool? value) {
-                                      if (value == true) {
-                                        selectedCalculations.add(calculation);
-                                      } else {
-                                        selectedCalculations.remove(calculation);
-                                      }
-                                    },
-                                  ),
-                                  CircleAvatar(
-                                    backgroundColor: calculation.excelType.contains('58')
-                                        ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
-                                        : Color(0xFFF47B20), // Turuncu (logo)
-                                    child: Text(
-                                      '${calculation.productCount}',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              trailing: IconButton(
-                                icon: Icon(
-                                  Icons.picture_as_pdf,
-                                  color: calculation.excelType.contains('58')
-                                      ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
-                                      : Color(0xFFF47B20), // Turuncu (logo)
-                                ),
-                                onPressed: () async {
-                                  // Önce depolama izinlerini kontrol et
-                                  bool hasPermission = await CalculateController.requestStoragePermission(context);
-                                  
-                                  if (!hasPermission) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          'PDF indirmek için depolama izni gereklidir.'
-                                        ),
-                                        backgroundColor: Colors.red.shade300,
-                                        duration: Duration(seconds: 4),
-                                      ),
-                                    );
-                                    return;
-                                  }
-
-                                  // PDF oluşturma işlemi başladığında yükleniyor göster
-                                  showDialog(
-                                    context: context,
-                                    barrierDismissible: false,
-                                    builder: (BuildContext context) {
-                                      return AlertDialog(
-                                        backgroundColor: Colors.white.withOpacity(0.9),
-                                        content: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            CircularProgressIndicator(
-                                              color: calculation.excelType.contains('58')
-                                                ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
-                                                : Color(0xFFF47B20), // Turuncu (logo)
-                                            ),
-                                            SizedBox(height: 20),
-                                            Text(
-                                              'PDF hazırlanıyor...',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w500,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      );
-                                    },
-                                  );
-
-                                  // PDF oluştur ve indir
-                                  try {
-                                    await CalculateController.generateCalculationPdf(calculation);
-                                  } catch (e) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('PDF indirme işlemi sırasında bir hata oluştu: $e'),
-                                        backgroundColor: Colors.red.shade300,
-                                        duration: Duration(seconds: 4),
-                                      ),
-                                    );
-                                  } finally {
-                                    // Yükleniyor göstergesini kapat
-                                    Navigator.of(context, rootNavigator: true).pop();
-                                  }
-                                },
-                                tooltip: 'PDF İndir',
-                              ),
-                              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              children: [
-                                const Divider(),
-                                const Text(
-                                  'Ürünler:',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                ...calculation.products.take(5).map((product) {
-                                  String productName = '';
-                                  if (product.containsKey('ÜRÜN KODU') && product.containsKey('ÜRÜN ADI')) {
-                                    productName = '${product['ÜRÜN KODU']} - ${product['ÜRÜN ADI']}';
-                                  } else if (product.containsKey('ÜRÜN KODU')) {
-                                    productName = product['ÜRÜN KODU'].toString();
-                                  } else {
-                                    productName = 'Ürün';
-                                  }
-                                  
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 4),
-                                    child: Text(
-                                      productName,
-                                      style: const TextStyle(fontSize: 13),
-                                    ),
-                                  );
-                                }).toList(),
-                                if (calculation.products.length > 5)
-                                  Text(
-                                    '...ve ${calculation.products.length - 5} ürün daha',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.grey.shade600,
-                                      fontStyle: FontStyle.italic,
-                                    ),
-                                  ),
-                                const SizedBox(height: 8),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Toplam Tutar:',
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${calculation.totalAmount.toStringAsFixed(2)} TL',
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text(
-                                      'Net Tutar:',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.blue.shade800,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${calculation.netAmount.toStringAsFixed(2)} TL',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            );
-                          }),
-                        );
-                      },
-                    );
-                  }),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.blue.shade800,
-                        ),
-                        child: const Text('Kapat'),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
@@ -493,9 +37,9 @@ class _HomeScreenState extends State<HomeScreen> {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF3C3C3C),  // Koyu gri/siyah (logo)
-              Color(0xFFF47B20),  // Turuncu (logo)
-              Color(0xFFFFFFFF),  // Beyaz
+              Color(0xFF3C3C3C),  
+              Color(0xFFF47B20),  
+              Color(0xFFFFFFFF),  
             ],
             stops: [0.0, 0.6, 1.0],
           ),
@@ -617,7 +161,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              onTap: () => _showCalculationHistoryPopup(context),
+                              onTap: () {
+                                // Son Hesaplamalar ekranına git
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (context) => const HistoryScreen(),
+                                  ),
+                                );
+                              },
                               borderRadius: BorderRadius.circular(15),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 12),
@@ -658,14 +209,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildButton(
                             context, 
                             '58 nolu', 
-                            Color(0xFF3C3C3C), // Koyu gri/siyah (logo) 
+                            const Color(0xFF3C3C3C),
                             isFullWidth: true
                           ),
                           const SizedBox(height: 20),
                           _buildButton(
                             context, 
                             '59 nolu', 
-                            Color(0xFFF47B20), // Turuncu (logo)
+                            const Color(0xFFF47B20),
                             isFullWidth: true
                           ),
                         ],
@@ -673,8 +224,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildButton(context, '58 nolu', Color(0xFF3C3C3C)), // Koyu gri/siyah (logo)
-                          _buildButton(context, '59 nolu', Color(0xFFF47B20)), // Turuncu (logo)
+                          _buildButton(context, '58 nolu', const Color(0xFF3C3C3C)),
+                          _buildButton(context, '59 nolu', const Color(0xFFF47B20)),
                         ],
                       ),
                   

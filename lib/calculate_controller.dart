@@ -64,6 +64,10 @@ class CalculateController extends GetxController {
   // Hesaplama geçmişi
   static RxList<CalculationHistory> calculationHistory = <CalculationHistory>[].obs;
   
+  // Düzenlenecek olan hesaplama
+  static CalculationHistory? calculationToEdit;
+  static int? calculationToEditIndex;
+  
   // En fazla saklanacak geçmiş sayısı
   static const int maxHistoryCount = 100;
   
@@ -1368,5 +1372,124 @@ class CalculateController extends GetxController {
     
     // iOS veya diğer platformlar için her zaman true döndür
     return true;
+  }
+
+  // Hesaplama düzenlemek için ürünleri yükle
+  void loadProductsForEditing() {
+    if (calculationToEdit != null) {
+      // Önce eski ürünleri temizle
+      selectedProducts.clear();
+      profilBoyuControllers.forEach((_, controller) => controller.dispose());
+      paketControllers.forEach((_, controller) => controller.dispose());
+      profilBoyuControllers.clear();
+      paketControllers.clear();
+      
+      // Hesaplamadaki ürünleri yükle
+      int index = 0;
+      for (var product in calculationToEdit!.products) {
+        // Ürün detaylarını koru
+        selectedProducts.add(Map<String, dynamic>.from(product));
+        
+        // Profil Boyu ve Paket değerlerini controller'lara yükle
+        var profilBoyu = "";
+        var paket = "";
+        
+        if (product.containsKey('profilBoyuDegeri')) {
+          final value = product['profilBoyuDegeri'];
+          if (value is num && value > 0) {
+            profilBoyu = value.toString();
+          }
+        }
+        
+        if (product.containsKey('paketDegeri')) {
+          final value = product['paketDegeri'];
+          if (value is num && value > 0) {
+            paket = value.toString();
+          }
+        }
+        
+        // Controller'ları oluştur ve değerleri ata
+        profilBoyuControllers[index] = TextEditingController(text: profilBoyu);
+        paketControllers[index] = TextEditingController(text: paket);
+        
+        // Listener'ları ekle
+        profilBoyuControllers[index]!.addListener(() {
+          calculateTotalPrice();
+        });
+        
+        paketControllers[index]!.addListener(() {
+          calculateTotalPrice();
+        });
+        
+        index++;
+      }
+      
+      // İskonto ve KDV değerlerini yükle
+      if (calculationToEdit!.products.isNotEmpty) {
+        var firstProduct = calculationToEdit!.products[0];
+        
+        if (firstProduct.containsKey('iskontoOrani')) {
+          var iskonto = firstProduct['iskontoOrani'];
+          if (iskonto is num) {
+            iskontoController.text = iskonto.toString();
+          }
+        }
+        
+        if (firstProduct.containsKey('kdvOrani')) {
+          var kdv = firstProduct['kdvOrani'];
+          if (kdv is num) {
+            kdvController.text = kdv.toString();
+          }
+        }
+      }
+      
+      // Toplam tutarı hesapla
+      calculateTotalPrice();
+    }
+  }
+
+  // Düzenlenen hesaplamayı güncelle
+  static Future<void> updateCalculation(CalculationHistory updatedCalculation) async {
+    try {
+      if (calculationToEditIndex != null && calculationToEditIndex! >= 0 && 
+          calculationToEditIndex! < calculationHistory.length) {
+        // Eski hesaplamayı yeni hesaplama ile değiştir
+        calculationHistory[calculationToEditIndex!] = updatedCalculation;
+        
+        // Kalıcı depolama için kaydet
+        await saveHistoryToStorage();
+        
+        Get.snackbar(
+          'Başarılı',
+          'Hesaplama başarıyla güncellendi',
+          snackPosition: SnackPosition.TOP,
+          backgroundColor: Colors.green.shade100,
+          colorText: Colors.green.shade800,
+          duration: const Duration(seconds: 3),
+          icon: const Icon(Icons.check_circle, color: Colors.green),
+          boxShadows: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            )
+          ],
+        );
+      }
+      
+      // Düzenlenen hesaplamayı temizle
+      calculationToEdit = null;
+      calculationToEditIndex = null;
+    } catch (e) {
+      Get.snackbar(
+        'Hata',
+        'Hesaplama güncellenirken bir hata oluştu: $e',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 3),
+      );
+    }
   }
 }
