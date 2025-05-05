@@ -194,7 +194,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           children: [
                             Checkbox(
                               value: isSelected,
-                              activeColor: calculation.excelType.contains('58')
+                              activeColor: calculation.excelType.contains('Alfa Pen')
                                   ? const Color(0xFF3C3C3C)
                                   : const Color(0xFFF47B20),
                               onChanged: (bool? value) {
@@ -206,7 +206,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               },
                             ),
                             CircleAvatar(
-                              backgroundColor: calculation.excelType.contains('58')
+                              backgroundColor: calculation.excelType.contains('Alfa Pen')
                                   ? const Color(0xFF3C3C3C)
                                   : const Color(0xFFF47B20),
                               child: Text(
@@ -226,7 +226,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             IconButton(
                               icon: Icon(
                                 Icons.edit,
-                                color: calculation.excelType.contains('58')
+                                color: calculation.excelType.contains('Alfa Pen')
                                     ? const Color(0xFF3C3C3C) 
                                     : const Color(0xFFF47B20),
                               ),
@@ -260,7 +260,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             IconButton(
                               icon: Icon(
                                 Icons.picture_as_pdf,
-                                color: calculation.excelType.contains('58')
+                                color: calculation.excelType.contains('Alfa Pen')
                                     ? const Color(0xFF3C3C3C)
                                     : const Color(0xFFF47B20),
                               ),
@@ -397,7 +397,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               CircularProgressIndicator(
-                color: calculation.excelType.contains('58')
+                color: calculation.excelType.contains('Alfa Pen')
                   ? const Color(0xFF3C3C3C)
                   : const Color(0xFFF47B20),
               ),

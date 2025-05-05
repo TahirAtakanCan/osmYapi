@@ -49,9 +49,19 @@ class _CalculateScreenState extends State<CalculateScreen> {
 
   Future<void> _loadExcelData() async {
     try {
-      final String excelFileName = widget.buttonType == '58 nolu'
-          ? 'assets/excel/58nolu.xlsx'
-          : 'assets/excel/59nolu.xlsx';
+      // Hangi Excel dosyasını yükleyeceğimizi belirleyelim
+      String excelFileName = 'assets/excel/59nolu.xlsx'; // Varsayılan değer
+      String excelType = 'Winer - 59 nolu'; // Varsayılan değer
+      
+      if (widget.buttonType.contains('Alfa Pen')) {
+        excelFileName = 'assets/excel/alfapen.xlsx';
+        excelType = 'Alfa Pen - 4';
+      } else if (widget.buttonType.contains('59 nolu')) {
+        excelFileName = 'assets/excel/59nolu.xlsx';
+        excelType = 'Winer - 59 nolu';
+      }
+      
+      print('Excel dosyası yükleniyor: $excelFileName, Tip: $excelType');
       
       final ByteData data = await rootBundle.load(excelFileName);
       var bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
@@ -60,17 +70,22 @@ class _CalculateScreenState extends State<CalculateScreen> {
       List<Map<String, dynamic>> tempData = [];
 
       for (var table in excel.tables.keys) {
+        print('Excel tablosu: $table');
         var rows = excel.tables[table]!.rows;
         if (rows.isEmpty) {
           continue;
         }
         
+        // Header row'u al
         var headerRow = rows[0];
         List<String> headers = [];
         for (var cell in headerRow) {
           headers.add(cell?.value?.toString() ?? '');
         }
         
+        print('Bulunan başlıklar: $headers');
+        
+        // Tüm satırları işle (header sonrası)
         for (var i = 1; i < rows.length; i++) {
           var row = rows[i];
           if (row.isNotEmpty && row[0] != null) {
@@ -109,14 +124,18 @@ class _CalculateScreenState extends State<CalculateScreen> {
         }
       }
       
+      // Veri sayısını yazdır
+      print('Excel\'den yüklenen veri sayısı: ${tempData.length}');
+      
+      // Excel verilerini controller'a ata
       controller.setExcelData(tempData);
       
-      // 59 nolu excel için varsayılan grubu ayarla
-      if (widget.buttonType == '59 nolu') {
-        controller.filterByGroup("Tüm Ürünler");
-      }
+      // Excel tipini ayarla
+      controller.setExcelType(excelType);
+      controller.filterByGroup("Tüm Ürünler");
       
     } catch (e) {
+      print('Excel yükleme hatası: $e');
       controller.isLoading.value = false;
     }
   }
@@ -387,51 +406,55 @@ class _CalculateScreenState extends State<CalculateScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // 59 nolu excel için grup seçim alanı
-                          if (widget.buttonType == '59 nolu') ...[
-                            const SizedBox(height: 4),
-                            const SizedBox(height: 4),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.1),
-                                    spreadRadius: 0,
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: Obx(() => DropdownButtonHideUnderline(
-                                child: ButtonTheme(
-                                  alignedDropdown: true,
-                                  child: DropdownButton<String>(
-                                    value: controller.selectedGroup.value,
-                                    isExpanded: true,
-                                    icon: const Icon(Icons.category),
-                                    style: TextStyle(
-                                      color: primaryColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    items: controller.groupDefinitions.keys
-                                        .map<DropdownMenuItem<String>>((String value) {
-                                      return DropdownMenuItem<String>(
-                                        value: value,
-                                        child: Text(value),
-                                      );
-                                    }).toList(),
-                                    onChanged: (String? newValue) {
-                                      if (newValue != null) {
-                                        controller.filterByGroup(newValue);
-                                      }
-                                    },
-                                  ),
+                          // Grup seçim alanı - Bu kısım her zaman gösterilsin
+                          const SizedBox(height: 4),
+                          const SizedBox(height: 4),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.1),
+                                  spreadRadius: 0,
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 2),
                                 ),
-                              )),
+                              ],
                             ),
-                          ],
+                            child: Obx(() => DropdownButtonHideUnderline(
+                              child: ButtonTheme(
+                                alignedDropdown: true,
+                                child: DropdownButton<String>(
+                                  value: controller.selectedGroup.value,
+                                  isExpanded: true,
+                                  icon: const Icon(Icons.category),
+                                  style: TextStyle(
+                                    color: primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  items: widget.buttonType.contains('Alfa Pen')
+                                    ? controller.groupDefinitionsAlfa.keys.map<DropdownMenuItem<String>>((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList()
+                                    : controller.groupDefinitions59.keys.map<DropdownMenuItem<String>>((String value) {
+                                        return DropdownMenuItem<String>(
+                                          value: value,
+                                          child: Text(value),
+                                        );
+                                      }).toList(),
+                                  onChanged: (String? newValue) {
+                                    if (newValue != null) {
+                                      controller.filterByGroup(newValue);
+                                    }
+                                  },
+                                ),
+                              ),
+                            )),
+                          ),
                           
                           const SizedBox(height: 8),
                           Container(
@@ -468,9 +491,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                   maxHeight: MediaQuery.of(context).size.height * 0.6,
                                 ),
                               ),
-                              items: widget.buttonType == '59 nolu' 
-                                  ? controller.filteredExcelData
-                                  : controller.excelData,
+                              items: controller.filteredExcelData,
                               itemAsString: (item) {
                                 if (item == null) return '';
                                 String displayText = '';

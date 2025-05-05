@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
     final bool isSmallScreen = screenSize.width < 400;
+    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     return Scaffold(
       body: Container(
@@ -93,8 +94,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             borderRadius: BorderRadius.circular(15),
                             child: Image.asset(
                               'assets/images/osmyapilogo.jpg',
-                              width: isSmallScreen ? 150 : 200,
-                              height: isSmallScreen ? 150 : 200,
+                              width: isSmallScreen ? 120 : 180,
+                              height: isSmallScreen ? 120 : 180,
                               fit: BoxFit.cover,
                             ),
                           ),
@@ -200,22 +201,23 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   
-                  SizedBox(height: screenSize.height * 0.08),
+                  SizedBox(height: isSmallScreen ? 25 : screenSize.height * 0.08),
                   
-                  
-                  isSmallScreen 
+                  // Dynamically determine layout based on screen size and orientation
+                  (isSmallScreen || isLandscape) 
                     ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           _buildButton(
                             context, 
-                            '58 nolu', 
+                            'Alfa Pen - 4', 
                             const Color(0xFF3C3C3C),
                             isFullWidth: true
                           ),
                           const SizedBox(height: 20),
                           _buildButton(
                             context, 
-                            '59 nolu', 
+                            'Winer - 59 nolu', 
                             const Color(0xFFF47B20),
                             isFullWidth: true
                           ),
@@ -224,8 +226,21 @@ class _HomeScreenState extends State<HomeScreen> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          _buildButton(context, '58 nolu', const Color(0xFF3C3C3C)),
-                          _buildButton(context, '59 nolu', const Color(0xFFF47B20)),
+                          Expanded(
+                            child: _buildButton(
+                              context, 
+                              'Alfa Pen - 4', 
+                              const Color(0xFF3C3C3C),
+                            ),
+                          ),
+                          const SizedBox(width: 15),
+                          Expanded(
+                            child: _buildButton(
+                              context, 
+                              'Winer - 59 nolu', 
+                              const Color(0xFFF47B20),
+                            ),
+                          ),
                         ],
                       ),
                   
@@ -271,7 +286,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
         style: ElevatedButton.styleFrom(
           padding: EdgeInsets.symmetric(
-            horizontal: isFullWidth ? 20 : 35, 
+            horizontal: isFullWidth ? 20 : 15, 
             vertical: 20,
           ),
           backgroundColor: color,
@@ -286,16 +301,20 @@ class _HomeScreenState extends State<HomeScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              text.contains('58') ? Icons.document_scanner : Icons.document_scanner_outlined,
+              text.contains('Alfa Pen') ? Icons.document_scanner : Icons.document_scanner_outlined,
               size: 24,
             ),
             const SizedBox(width: 10),
-            Text(
-              text,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
+            Flexible(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+                textAlign: TextAlign.center,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

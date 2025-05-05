@@ -40,3 +40,8 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+//-> Yapılacaklar yeni alfa pen 
+// ECO70 PROFİT /BEYAZ ÇİFT YÜZ LAMİNE 
+//7000 sürme seri 
+// YARDIMCI PROFİLLER 70 LİK SERİ / ORTAK KULLANIM 

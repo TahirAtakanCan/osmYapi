@@ -79,7 +79,8 @@ class CalculateController extends GetxController {
   RxString selectedGroup = "Tüm Ürünler".obs;
 
   
-  final Map<String, Map<String, dynamic>> groupDefinitions = {
+  // 59 nolu Excel için grup tanımlamaları
+  final Map<String, Map<String, dynamic>> groupDefinitions59 = {
     "Tüm Ürünler": {"startRow": 0, "endRow": -1},
     "60 Serisi Ana Profiller": {"startRow": 0, "endRow": 23},
     "60 3 Odacık Serisi Ana Profiller": {"startRow": 24, "endRow": 36},
@@ -88,6 +89,16 @@ class CalculateController extends GetxController {
     "Sürme Serisi Profiller": {"startRow": 87, "endRow": 122},
     "Yalıtımlı Sürme Serisi": {"startRow": 123, "endRow": 144},
     "Yardımcı Profiller": {"startRow": 145, "endRow": 185},
+  };
+  
+  // Alfapen Excel için grup tanımlamaları
+  final Map<String, Map<String, dynamic>> groupDefinitionsAlfa = {
+    "Tüm Ürünler": {"startRow": 0, "endRow": -1},
+    "ECO70 PROFIT Serisi": {"startRow": 1, "endRow": 20},
+    "7000 Sürme Serisi": {"startRow": 21, "endRow": 47},
+    "Yardımcı Profiller 60 lık Seri": {"startRow": 48, "endRow": 59},
+    "Yardımcı Profiller 70 lik Seri": {"startRow": 60, "endRow": 67},
+    "Yardımcı Profiller Ortak Kullanım": {"startRow": 68, "endRow": 90},
   };
   
   
@@ -146,67 +157,83 @@ class CalculateController extends GetxController {
       return;
     }
     
-    var groupInfo = groupDefinitions[groupName];
-    if (groupInfo != null) {
-      int startRow = groupInfo["startRow"] as int;
-      int endRow = groupInfo["endRow"] as int;
-      
-      if (endRow == -1) {
-        endRow = excelData.length - 1;
-      }
-      
-      List<Map<String, dynamic>> filtered = [];
-      for (int i = 0; i < excelData.length; i++) {
-        if (i >= startRow && i <= endRow) {
-          filtered.add(excelData[i]);
-        }
-      }
-      
-      filteredExcelData.assignAll(filtered);
+    // Excel tipine göre doğru grup tanımlarını seç
+    Map<String, Map<String, dynamic>> groupDefs;
+    if (excelType.contains('Alfa Pen')) {
+      groupDefs = groupDefinitionsAlfa;
+      print("Alfa Pen grup tanımları kullanılıyor: $groupName");
+    } else {
+      groupDefs = groupDefinitions59;
+      print("59 nolu grup tanımları kullanılıyor: $groupName");
     }
+    
+    if (!groupDefs.containsKey(groupName)) {
+      print("HATA: Seçilen grup bulunamadı: $groupName");
+      filteredExcelData.assignAll(excelData);
+      return;
+    }
+    
+    // Grup bilgilerini al ve filtreleme yap
+    var groupInfo = groupDefs[groupName]!;
+    int startRow = groupInfo["startRow"] as int;
+    int endRow = groupInfo["endRow"] as int;
+    
+    if (endRow == -1) {
+      endRow = excelData.length - 1;
+    }
+    
+    print("Filtreleme aralığı: $startRow - $endRow, Toplam excel veri sayısı: ${excelData.length}");
+    
+    List<Map<String, dynamic>> filtered = [];
+    for (int i = 0; i < excelData.length; i++) {
+      if (i >= startRow && i <= endRow) {
+        filtered.add(excelData[i]);
+      }
+    }
+    
+    print("Filtreleme sonrası kalan veri sayısı: ${filtered.length}");
+    filteredExcelData.assignAll(filtered);
   }
 
   // Ürün ekleme fonksiyonu
   void addProduct(Map<String, dynamic> product) {
-    if (product != null) {
-      // Ürünün zaten eklenip eklenmediğini kontrol et
-      bool isAlreadyAdded = false;
-      if (codeColumn.isNotEmpty && nameColumn.isNotEmpty) {
-        isAlreadyAdded = selectedProducts.any(
-          (existingProduct) => 
-            existingProduct[codeColumn] == product[codeColumn] && 
-            existingProduct[nameColumn] == product[nameColumn]
-        );
-      }
+    // Ürünün zaten eklenip eklenmediğini kontrol et
+    bool isAlreadyAdded = false;
+    if (codeColumn.isNotEmpty && nameColumn.isNotEmpty) {
+      isAlreadyAdded = selectedProducts.any(
+        (existingProduct) => 
+          existingProduct[codeColumn] == product[codeColumn] && 
+          existingProduct[nameColumn] == product[nameColumn]
+      );
+    }
+    
+    if (!isAlreadyAdded) {
+      final newProductIndex = selectedProducts.length;
       
-      if (!isAlreadyAdded) {
-        final newProductIndex = selectedProducts.length;
-        
-        // Ürünü ekle
-        selectedProducts.add(Map<String, dynamic>.from(product));
-        
-        // Profil Boyu ve Paket controller'ları oluştur - boş başlatılıyor
-        profilBoyuControllers[newProductIndex] = TextEditingController(text: '');
-        paketControllers[newProductIndex] = TextEditingController(text: '');
-        
-        // Her iki controller'a da listener ekle
-        profilBoyuControllers[newProductIndex]!.addListener(() {
-          calculateTotalPrice();
-        });
-        
-        paketControllers[newProductIndex]!.addListener(() {
-          calculateTotalPrice();
-        });
-        
+      // Ürünü ekle
+      selectedProducts.add(Map<String, dynamic>.from(product));
+      
+      // Profil Boyu ve Paket controller'ları oluştur - boş başlatılıyor
+      profilBoyuControllers[newProductIndex] = TextEditingController(text: '');
+      paketControllers[newProductIndex] = TextEditingController(text: '');
+      
+      // Her iki controller'a da listener ekle
+      profilBoyuControllers[newProductIndex]!.addListener(() {
         calculateTotalPrice();
-      } else {
-        // Kullanıcıya bildir (bu kısım UI'da gösterilecek)
-        Get.snackbar(
-          'Uyarı',
-          'Bu ürün zaten eklenmiş!',
-          snackPosition: SnackPosition.BOTTOM
-        );
-      }
+      });
+      
+      paketControllers[newProductIndex]!.addListener(() {
+        calculateTotalPrice();
+      });
+      
+      calculateTotalPrice();
+    } else {
+      // Kullanıcıya bildir (bu kısım UI'da gösterilecek)
+      Get.snackbar(
+        'Uyarı',
+        'Bu ürün zaten eklenmiş!',
+        snackPosition: SnackPosition.BOTTOM
+      );
     }
   }
 
