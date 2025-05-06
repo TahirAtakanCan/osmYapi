@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/services.dart';
-import 'dart:typed_data';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:get/get.dart';
 import 'calculate_controller.dart';
@@ -50,8 +49,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
   Future<void> _loadExcelData() async {
     try {
       // Hangi Excel dosyasını yükleyeceğimizi belirleyelim
-      String excelFileName = 'assets/excel/59nolu.xlsx'; // Varsayılan değer
-      String excelType = 'Winer - 59 nolu'; // Varsayılan değer
+      String excelFileName = '';
+      String excelType = '';
       
       if (widget.buttonType.contains('Alfa Pen')) {
         excelFileName = 'assets/excel/alfapen.xlsx';
@@ -64,8 +63,17 @@ class _CalculateScreenState extends State<CalculateScreen> {
       print('Excel dosyası yükleniyor: $excelFileName, Tip: $excelType');
       
       final ByteData data = await rootBundle.load(excelFileName);
-      var bytes = data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
-      var excel = Excel.decodeBytes(bytes);
+      var bytes = await data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes);
+      
+      // Excel dosyasını çözmeye çalış
+      var excel;
+      try {
+        excel = await Excel.decodeBytes(bytes);
+      } catch (e) {
+        print('Excel yüklenirken format hatası oluştu: $e');
+        // Format hatası oluşursa, throw ile üst seviyedeki catch bloğuna gönder
+        throw Exception('Excel formatı okuma hatası: $e');
+      }
 
       List<Map<String, dynamic>> tempData = [];
 
@@ -92,25 +100,60 @@ class _CalculateScreenState extends State<CalculateScreen> {
             Map<String, dynamic> rowData = {};
             
             for (var j = 0; j < headers.length; j++) {
-              if (j < row.length && row[j]?.value != null) {
+              if (j < row.length && row[j] != null) {
                 String header = headers[j];
                 
-                dynamic cellValue = row[j]?.value;
+                // Hücre değerini güvenli bir şekilde oku
+                dynamic cellValue;
+                try {
+                  cellValue = row[j]?.value;
+                } catch (e) {
+                  print('Hücre değeri okunurken hata: $e, Hücre: Satır $i Sütun $j');
+                  cellValue = null;
+                }
+                
+                // Sayısal değerler için özel işlem
                 if (header.toUpperCase().contains('PROFİL BOYU') || 
-                    header.toUpperCase().contains('FİYAT')) {
+                    header.toUpperCase().contains('FİYAT') || 
+                    header.toUpperCase().contains('PAKET')) {
                   double numValue = 0.0;
                   
                   if (cellValue != null) {
                     if (cellValue is num) {
                       numValue = cellValue.toDouble();
                     } else if (cellValue is String) {
+                      // Virgül yerine nokta kullanarak sayıya çevir
                       String numStr = cellValue.replaceAll(',', '.');
-                      numValue = double.tryParse(numStr) ?? 0.0;
+                      // Boş olmayan tüm sayısal olmayan karakterleri kaldır
+                      numStr = numStr.replaceAll(RegExp(r'[^\d.]'), '');
+                      
+                      if (numStr.isNotEmpty) {
+                        // Sayıya çevirmeyi dene
+                        try {
+                          numValue = double.parse(numStr);
+                        } catch (e) {
+                          print('Sayı çevirme hatası: $e, Değer: $numStr');
+                          numValue = 0.0;
+                        }
+                      }
+                    } else {
+                      // Diğer tipleri string'e çevirip sonra double'a dönüştürmeyi dene
+                      try {
+                        String strVal = cellValue.toString();
+                        strVal = strVal.replaceAll(',', '.').replaceAll(RegExp(r'[^\d.]'), '');
+                        
+                        if (strVal.isNotEmpty) {
+                          numValue = double.parse(strVal);
+                        }
+                      } catch (e) {
+                        print('Sayı çevirme hatası 2: $e, Değer: $cellValue');
+                      }
                     }
                   }
                   
                   rowData[header] = numValue;
                 } else {
+                  // Sayısal olmayan değerler için string'e çevir
                   rowData[header] = cellValue?.toString() ?? '';
                 }
               }
@@ -124,18 +167,28 @@ class _CalculateScreenState extends State<CalculateScreen> {
         }
       }
       
-      // Veri sayısını yazdır
+      
       print('Excel\'den yüklenen veri sayısı: ${tempData.length}');
       
-      // Excel verilerini controller'a ata
+      
       controller.setExcelData(tempData);
       
-      // Excel tipini ayarla
+      
       controller.setExcelType(excelType);
       controller.filterByGroup("Tüm Ürünler");
       
     } catch (e) {
       print('Excel yükleme hatası: $e');
+      
+      Get.snackbar(
+        'Excel Yükleme Hatası',
+        'Excel dosyası yüklenirken bir hata oluştu: $e',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade800,
+        duration: const Duration(seconds: 5),
+        icon: const Icon(Icons.error_outline, color: Colors.red),
+      );
       controller.isLoading.value = false;
     }
   }
@@ -166,7 +219,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
           title: Text(
             'Ürün Silme Onayı',
             style: TextStyle(
-              color: widget.buttonType == '58 nolu' ? Colors.blue.shade800 : Colors.red.shade700,
+              color: widget.buttonType == 'Alfa Pen' ? Colors.blue.shade800 : Colors.red.shade700,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -226,7 +279,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
           title: Text(
             CalculateController.calculationToEdit != null ? 'Hesaplama Düzenle' : 'Müşteri/Kurum Bilgisi',
             style: TextStyle(
-              color: widget.buttonType == '58 nolu' ? Colors.blue.shade800 : Colors.red.shade700,
+              color: widget.buttonType == 'Alfa Pen' ? Colors.blue.shade800 : Colors.red.shade700,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -340,11 +393,11 @@ class _CalculateScreenState extends State<CalculateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color primaryColor = widget.buttonType == '58 nolu' 
+    final Color primaryColor = widget.buttonType == 'Alfa Pen' 
         ? Color(0xFF3C3C3C) // Koyu gri/siyah (logo)
         : Color(0xFFF47B20); // Turuncu (logo)
     
-    final Color secondaryColor = widget.buttonType == '58 nolu' 
+    final Color secondaryColor = widget.buttonType == 'Alfa Pen' 
         ? Colors.grey.shade200 
         : Color(0xFFFBD2A2); // Açık turuncu (logodaki turuncunun açık tonu)
         
