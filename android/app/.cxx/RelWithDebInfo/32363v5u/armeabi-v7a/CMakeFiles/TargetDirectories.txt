@@ -1,0 +1,2 @@
+C:/Users/canal/Desktop/OSMYapi/osmyapi/android/app/.cxx/RelWithDebInfo/32363v5u/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/canal/Desktop/OSMYapi/osmyapi/android/app/.cxx/RelWithDebInfo/32363v5u/armeabi-v7a/CMakeFiles/rebuild_cache.dir

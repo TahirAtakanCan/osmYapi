@@ -94,11 +94,11 @@ class CalculateController extends GetxController {
   // Alfapen Excel için grup tanımlamaları
   final Map<String, Map<String, dynamic>> groupDefinitionsAlfa = {
     "Tüm Ürünler": {"startRow": 0, "endRow": -1},
-    "ECO70 PROFIT Serisi": {"startRow": 1, "endRow": 20},
-    "7000 Sürme Serisi": {"startRow": 21, "endRow": 47},
-    "Yardımcı Profiller 60 lık Seri": {"startRow": 48, "endRow": 59},
-    "Yardımcı Profiller 70 lik Seri": {"startRow": 60, "endRow": 67},
-    "Yardımcı Profiller Ortak Kullanım": {"startRow": 68, "endRow": 90},
+    "ECO70 PROFIT Serisi": {"startRow": 0, "endRow": 19},
+    "7000 Sürme Serisi": {"startRow": 20, "endRow": 46},
+    "Yardımcı Profiller 60 lık Seri": {"startRow": 47, "endRow": 58},
+    "Yardımcı Profiller 70 lik Seri": {"startRow": 59, "endRow": 66},
+    "Yardımcı Profiller Ortak Kullanım": {"startRow": 67, "endRow": 89},
   };
   
   

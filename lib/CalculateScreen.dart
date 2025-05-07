@@ -55,9 +55,9 @@ class _CalculateScreenState extends State<CalculateScreen> {
       if (widget.buttonType.contains('Alfa Pen')) {
         excelFileName = 'assets/excel/alfapen.xlsx';
         excelType = 'Alfa Pen - 4';
-      } else if (widget.buttonType.contains('59 nolu')) {
+      } else if (widget.buttonType.contains('Winer')) {
         excelFileName = 'assets/excel/59nolu.xlsx';
-        excelType = 'Winer - 59 nolu';
+        excelType = 'Winer - 59';
       }
       
       print('Excel dosyası yükleniyor: $excelFileName, Tip: $excelType');

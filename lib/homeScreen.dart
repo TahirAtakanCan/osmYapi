@@ -203,46 +203,32 @@ class _HomeScreenState extends State<HomeScreen> {
                   
                   SizedBox(height: isSmallScreen ? 25 : screenSize.height * 0.08),
                   
-                  // Dynamically determine layout based on screen size and orientation
-                  (isSmallScreen || isLandscape) 
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildButton(
-                            context, 
-                            'Alfa Pen - 4', 
-                            const Color(0xFF3C3C3C),
-                            isFullWidth: true
-                          ),
-                          const SizedBox(height: 20),
-                          _buildButton(
-                            context, 
-                            'Winer - 59 nolu', 
-                            const Color(0xFFF47B20),
-                            isFullWidth: true
-                          ),
-                        ],
-                      )
-                    : Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(
-                            child: _buildButton(
-                              context, 
-                              'Alfa Pen - 4', 
-                              const Color(0xFF3C3C3C),
-                            ),
-                          ),
-                          const SizedBox(width: 15),
-                          Expanded(
-                            child: _buildButton(
-                              context, 
-                              'Winer - 59 nolu', 
-                              const Color(0xFFF47B20),
-                            ),
-                          ),
-                        ],
+                  // Butonları her zaman alt alta göster
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: isSmallScreen ? double.infinity : screenSize.width * 0.7,
+                        child: _buildButton(
+                          context, 
+                          'Alfa Pen - 4', 
+                          const Color(0xFF3C3C3C),
+                          isFullWidth: true
+                        ),
                       ),
+                      SizedBox(height: isSmallScreen ? 20 : 30),
+                      Container(
+                        width: isSmallScreen ? double.infinity : screenSize.width * 0.7,
+                        child: _buildButton(
+                          context, 
+                          'Winer - 59', 
+                          const Color(0xFFF47B20),
+                          isFullWidth: true
+                        ),
+                      ),
+                    ],
+                  ),
                   
                   SizedBox(height: screenSize.height * 0.05),
                 ],
