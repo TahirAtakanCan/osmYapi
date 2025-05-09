@@ -1,8 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
-import 'calculate_controller.dart';
+import 'calculate_controller_base.dart';
+import 'calculate_controller_winer.dart';
+import 'calculate_controller_alfapen.dart';
 import 'CalculateScreen.dart';
+
+// Adaptör sınıfı - CalculateController yerine kullanılacak
+class CalculateController {
+  // HistoryScreen.dart'daki statik referansları için yöntemler
+  static Future<void> loadHistoryFromStorage() async {
+    await CalculateControllerBase.loadHistoryFromStorage();
+  }
+  
+  static Future<bool> requestStoragePermission(BuildContext context) async {
+    return await CalculateControllerBase.requestStoragePermission(context);
+  }
+  
+  static Future<void> generateCalculationPdf(CalculationHistory calculation) async {
+    await CalculateControllerBase.generateCalculationPdf(calculation);
+  }
+  
+  static Future<void> deleteSelectedCalculations(List<CalculationHistory> selectedCalculations) async {
+    await CalculateControllerBase.deleteSelectedCalculations(selectedCalculations);
+  }
+  
+  // Hesaplama geçmişi için statik değişkenlere erişim sağlayan yöntemler
+  static List<CalculationHistory> get calculationHistory => CalculateControllerBase.calculationHistory;
+  
+  static CalculationHistory? get calculationToEdit => CalculateControllerBase.calculationToEdit;
+  static set calculationToEdit(CalculationHistory? value) => CalculateControllerBase.calculationToEdit = value;
+  
+  static int? get calculationToEditIndex => CalculateControllerBase.calculationToEditIndex;
+  static set calculationToEditIndex(int? value) => CalculateControllerBase.calculationToEditIndex = value;
+  
+  static Future<void> updateCalculation(CalculationHistory updatedCalculation) async {
+    await CalculateControllerBase.updateCalculation(updatedCalculation);
+  }
+}
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -232,9 +267,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                               onPressed: () {
                                 
+                                // Base controller değerlerini güncelle
                                 CalculateController.calculationToEdit = calculation;
                                 CalculateController.calculationToEditIndex = index;
-                                
                                 
                                 Navigator.of(context).push(
                                   MaterialPageRoute(
@@ -242,7 +277,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   ),
                                 ).then((_) {
                                   
-                                  final controller = Get.find<CalculateController>(tag: calculation.excelType);
+                                  // Doğru controller'ı bul
+                                  dynamic controller;
+                                  if (calculation.excelType.contains('Alfa Pen')) {
+                                    controller = Get.find<CalculateControllerAlfapen>(tag: calculation.excelType);
+                                  } else if (calculation.excelType.contains('Winer')) {
+                                    controller = Get.find<CalculateControllerWiner>(tag: calculation.excelType);
+                                  } else {
+                                    controller = Get.find<CalculateControllerBase>(tag: calculation.excelType);
+                                  }
+                                  
                                   controller.selectedProducts.clear();
                                   controller.profilBoyuControllers.forEach((_, controller) => controller.dispose());
                                   controller.paketControllers.forEach((_, controller) => controller.dispose());

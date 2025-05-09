@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'CalculateScreen.dart';
 import 'HistoryScreen.dart';
-import 'calculate_controller.dart';
+import 'calculate_controller_base.dart';
+import 'calculate_controller_winer.dart';
+import 'calculate_controller_alfapen.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -20,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _loadCalculationHistory() async {
-    await CalculateController.loadHistoryFromStorage();
+    await CalculateControllerBase.loadHistoryFromStorage();
   }
   
   @override
@@ -261,7 +263,15 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ).then((_) {
             // HomeScreen'e geri dönüldüğünde ürünleri temizle
-            final controller = Get.find<CalculateController>(tag: text);
+            final dynamic controller;
+            if (text.contains('Alfa Pen')) {
+              controller = Get.find<CalculateControllerAlfapen>(tag: text);
+            } else if (text.contains('Winer')) {
+              controller = Get.find<CalculateControllerWiner>(tag: text);
+            } else {
+              controller = Get.find<CalculateControllerBase>(tag: text);
+            }
+            
             controller.selectedProducts.clear();
             controller.profilBoyuControllers.forEach((_, controller) => controller.dispose());
             controller.paketControllers.forEach((_, controller) => controller.dispose());

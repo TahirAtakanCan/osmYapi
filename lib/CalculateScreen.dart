@@ -3,7 +3,9 @@ import 'package:excel/excel.dart' hide Border;
 import 'package:flutter/services.dart';
 import 'package:dropdown_search/dropdown_search.dart';
 import 'package:get/get.dart';
-import 'calculate_controller.dart';
+import 'calculate_controller_base.dart';
+import 'calculate_controller_winer.dart';
+import 'calculate_controller_alfapen.dart';
 
 class CalculateScreen extends StatefulWidget {
   final String buttonType;
@@ -15,21 +17,30 @@ class CalculateScreen extends StatefulWidget {
 }
 
 class _CalculateScreenState extends State<CalculateScreen> {
-  late final CalculateController controller;
+  late final dynamic controller;
   Map<String, dynamic>? selectedProduct;
   bool _isPanelExpanded = false;
 
   @override
   void initState() {
     super.initState();
-    controller = Get.put(CalculateController(), tag: widget.buttonType);
+    
+    // Widget buttonType'a göre doğru controller'ı oluştur
+    if (widget.buttonType.contains('Alfa Pen')) {
+      controller = Get.put(CalculateControllerAlfapen(), tag: widget.buttonType);
+    } else if (widget.buttonType.contains('Winer')) {
+      controller = Get.put(CalculateControllerWiner(), tag: widget.buttonType);
+    } else {
+      // Varsayılan olarak base controller'ı kullan
+      controller = Get.put(CalculateControllerBase(), tag: widget.buttonType);
+    }
     
     controller.setExcelType(widget.buttonType);
     _loadExcelData();
     
     // Eğer düzenleme modu ise, hesaplamayı yükle
-    if (CalculateController.calculationToEdit != null && 
-        CalculateController.calculationToEditIndex != null) {
+    if (CalculateControllerBase.calculationToEdit != null && 
+        CalculateControllerBase.calculationToEditIndex != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         // Excel verisi yüklendikten sonra ürünleri yükle
         if (!controller.isLoading.value) {
@@ -37,7 +48,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
         } else {
           // Excel verisi yüklenene kadar bekle
           controller.isLoading.listen((isLoading) {
-            if (!isLoading && CalculateController.calculationToEdit != null) {
+            if (!isLoading && CalculateControllerBase.calculationToEdit != null) {
               controller.loadProductsForEditing();
             }
           });
@@ -264,8 +275,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
     TextEditingController customerNameController = TextEditingController();
     
     // Eğer düzenleme modunda isek, mevcut müşteri adını kullan
-    if (CalculateController.calculationToEdit != null) {
-      customerNameController.text = CalculateController.calculationToEdit!.customerName;
+    if (CalculateControllerBase.calculationToEdit != null) {
+      customerNameController.text = CalculateControllerBase.calculationToEdit!.customerName;
     }
 
     return showDialog<void>(
@@ -277,7 +288,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
             borderRadius: BorderRadius.circular(16),
           ),
           title: Text(
-            CalculateController.calculationToEdit != null ? 'Hesaplama Düzenle' : 'Müşteri/Kurum Bilgisi',
+            CalculateControllerBase.calculationToEdit != null ? 'Hesaplama Düzenle' : 'Müşteri/Kurum Bilgisi',
             style: TextStyle(
               color: widget.buttonType == 'Alfa Pen' ? Colors.blue.shade800 : Colors.red.shade700,
               fontWeight: FontWeight.bold,
@@ -313,11 +324,11 @@ class _CalculateScreenState extends State<CalculateScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              child: Text(CalculateController.calculationToEdit != null ? 'Güncelle' : 'Kaydet'),
+              child: Text(CalculateControllerBase.calculationToEdit != null ? 'Güncelle' : 'Kaydet'),
               onPressed: () async {
                 Navigator.of(context).pop();
                 
-                if (CalculateController.calculationToEdit != null) {
+                if (CalculateControllerBase.calculationToEdit != null) {
                   // Düzenleme modunda - hesaplamayı güncelle
                   final List<Map<String, dynamic>> productCopies = [];
                   
@@ -355,7 +366,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                   );
                   
                   // Hesaplamayı güncelle
-                  await CalculateController.updateCalculation(updatedCalculation);
+                  await CalculateControllerBase.updateCalculation(updatedCalculation);
                   
                   // Ana ekrana geri dön
                   Navigator.of(context).pop();
