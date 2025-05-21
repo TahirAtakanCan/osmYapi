@@ -918,8 +918,7 @@ class CalculateControllerBase extends GetxController {
                 children: [
                   pw.SizedBox(height: 5),
                   pw.Divider(color: PdfColors.grey300),
-                  pw.SizedBox(height: 5),
-                  pw.Row(
+                  pw.SizedBox(height: 5),                  pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text('NET TUTAR', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
@@ -927,6 +926,16 @@ class CalculateControllerBase extends GetxController {
                         style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
                     ],
                   ),
+                  if (!hasKdv) ...[
+                    pw.SizedBox(height: 5),
+                    pw.Row(
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      children: [
+                        pw.Text(fixTurkishChars('Fiyatlarımıza KDV Dahil Değildir.'), 
+                          style: pw.TextStyle(fontSize: 12, fontStyle: pw.FontStyle.italic)),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
