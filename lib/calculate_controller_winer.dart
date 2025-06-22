@@ -1,9 +1,8 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'calculate_controller_base.dart';
 
 class CalculateControllerWiner extends CalculateControllerBase {
-  final Map<String, Map<String, dynamic>> groupDefinitions59 = {
+  final Map<String, Map<String, dynamic>> groupDefinitions60 = {
     "Tüm Ürünler": {"startRow": 0, "endRow": -1},
     "60 Serisi Ana Profiller": {"startRow": 0, "endRow": 23},
     "60 3 Odacık Serisi Ana Profiller": {"startRow": 24, "endRow": 36},
@@ -23,12 +22,12 @@ class CalculateControllerWiner extends CalculateControllerBase {
       return;
     }
     
-    if (!groupDefinitions59.containsKey(groupName)) {
+    if (!groupDefinitions60.containsKey(groupName)) {
       filteredExcelData.assignAll(excelData);
       return;
     }
     
-    var groupInfo = groupDefinitions59[groupName]!;
+    var groupInfo = groupDefinitions60[groupName]!;
     int startRow = groupInfo["startRow"] as int;
     int endRow = groupInfo["endRow"] as int;
     

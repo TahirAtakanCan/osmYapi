@@ -67,8 +67,8 @@ class _CalculateScreenState extends State<CalculateScreen> {
         excelFileName = 'assets/excel/alfapen.xlsx';
         excelType = 'Alfa Pen - 4';
       } else if (widget.buttonType.contains('Winer')) {
-        excelFileName = 'assets/excel/59nolu.xlsx';
-        excelType = 'Winer - 59';
+        excelFileName = 'assets/excel/60nolu.xlsx';
+        excelType = 'Winer - 60';
       }
       
       print('Excel dosyası yükleniyor: $excelFileName, Tip: $excelType');
@@ -504,7 +504,7 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                           child: Text(value),
                                         );
                                       }).toList()
-                                    : controller.groupDefinitions59.keys.map<DropdownMenuItem<String>>((String value) {
+                                    : controller.groupDefinitions60.keys.map<DropdownMenuItem<String>>((String value) {
                                         return DropdownMenuItem<String>(
                                           value: value,
                                           child: Text(value),
@@ -664,8 +664,6 @@ class _CalculateScreenState extends State<CalculateScreen> {
                                         displayTitle = 'Ürün ${index + 1}';
                                       }
                                       
-                                      String profilBoyuText = '';
-                                      String fiyatText = '';
                                       String hesaplananTutarText = '';
                                       
                                       if (product.containsKey('hesaplananTutar')) {

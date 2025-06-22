@@ -5,7 +5,6 @@ import 'HistoryScreen.dart';
 import 'calculate_controller_base.dart';
 import 'calculate_controller_winer.dart';
 import 'calculate_controller_alfapen.dart';
-import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,7 +28,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final Size screenSize = MediaQuery.of(context).size;
     final bool isSmallScreen = screenSize.width < 400;
-    final bool isLandscape = MediaQuery.of(context).orientation == Orientation.landscape;
     
     return Scaffold(
       body: Container(
@@ -224,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: isSmallScreen ? double.infinity : screenSize.width * 0.7,
                         child: _buildButton(
                           context, 
-                          'Winer - 59', 
+                          'Winer - 60', 
                           const Color(0xFFF47B20),
                           isFullWidth: true
                         ),

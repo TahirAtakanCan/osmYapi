@@ -297,7 +297,7 @@ class CalculateControllerBase extends GetxController {
     isLoading.value = false;
   }
   
-  // Excel dosya tipini ayarla (58 nolu, 59 nolu)
+  // Excel dosya tipini ayarla (58 nolu, 60 nolu)
   void setExcelType(String type) {
     excelType = type;
   }
@@ -573,8 +573,6 @@ class CalculateControllerBase extends GetxController {
           .replaceAll('ç', 'c')
           .replaceAll('Ç', 'C');
       }
-      
-      final pdfTitle = fixTurkishChars('OSM YAPI Hesaplama Raporu');
       
       pdf.addPage(
         pw.MultiPage(
