@@ -222,7 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: isSmallScreen ? double.infinity : screenSize.width * 0.7,
                         child: _buildButton(
                           context, 
-                          'Winer - 60', 
+                          'Winer - 61', 
                           const Color(0xFFF47B20),
                           isFullWidth: true
                         ),
