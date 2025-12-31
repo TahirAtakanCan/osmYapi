@@ -9,6 +9,7 @@ import 'dart:convert';
 import 'calculate_controller_base.dart';
 import 'calculate_controller_winer.dart';
 import 'calculate_controller_alfapen.dart';
+import 'services/cache_service.dart';
 
 class CalculateScreen extends StatefulWidget {
   final String buttonType;
@@ -66,76 +67,17 @@ class _CalculateScreenState extends State<CalculateScreen> {
     try {
       // Winer için Google Sheets CSV, Alfa Pen için yerel Excel
       if (widget.buttonType.contains('Winer')) {
-        // WINER - Google Sheets CSV'den yükle
-        String csvUrl =
-            'https://docs.google.com/spreadsheets/d/e/2PACX-1vRuNLxisljropuR9vv2cT_-sKLssJWI_BIXJ0jJmLbX4TXcWLCyYtWjaRGuTDjLursOuJXDCy1t-mFl/pub?output=csv';
+        // WINER - Önce internet kontrolü yap
         String excelType = 'Winer - 61';
-
-        print('Veri indiriliyor: $excelType');
-
-        // İnternetten Veriyi Çek
-        final response = await http.get(Uri.parse(csvUrl));
-
-        if (response.statusCode != 200) {
-          throw Exception(
-              'Veri indirilemedi! Hata kodu: ${response.statusCode}');
+        bool hasInternet = await CacheService.hasInternetConnection();
+        
+        if (hasInternet) {
+          // İnternet varsa: Online'dan çek ve cache'e kaydet
+          await _loadWinerFromOnline(excelType);
+        } else {
+          // İnternet yoksa: Cache'den yükle
+          await _loadWinerFromCache(excelType);
         }
-
-        // Gelen CSV Verisini Listeye Çevir (Türkçe karakter sorunu için utf8 kullanıyoruz)
-        List<List<dynamic>> csvTable =
-            const CsvToListConverter().convert(utf8.decode(response.bodyBytes));
-
-        if (csvTable.isEmpty) throw Exception("CSV dosyası boş!");
-
-        // Başlıkları (Header) Al (İlk satır)
-        List<String> headers = csvTable[0].map((e) => e.toString()).toList();
-
-        print('Bulunan başlıklar: $headers');
-
-        // Veriyi Map Formatına Çevir
-        List<Map<String, dynamic>> finalData = [];
-
-        for (var i = 1; i < csvTable.length; i++) {
-          var row = csvTable[i];
-          if (row.isEmpty) continue;
-
-          Map<String, dynamic> rowData = {};
-          for (var j = 0; j < headers.length; j++) {
-            if (j < row.length) {
-              String header = headers[j];
-              var value = row[j];
-
-              // Sayısal değerleri güvenli şekilde çevir
-              if (header.toUpperCase().contains('FİYAT') ||
-                  header.toUpperCase().contains('BOY') ||
-                  header.toUpperCase().contains('PAKET')) {
-                if (value is num) {
-                  rowData[header] = value.toDouble();
-                } else {
-                  // String ise "1.250,50" gibi formatları düzelt
-                  String cleanVal =
-                      value.toString().replaceAll(',', '.').trim();
-                  rowData[header] = double.tryParse(cleanVal) ?? 0.0;
-                }
-              } else {
-                rowData[header] = value;
-              }
-            }
-          }
-
-          // Boş satırları atla
-          if (rowData.isNotEmpty &&
-              rowData.values.any((v) => v != null && v.toString().isNotEmpty)) {
-            finalData.add(rowData);
-          }
-        }
-
-        print('CSV\'den yüklenen veri sayısı: ${finalData.length}');
-
-        // Veriyi Controller'a Yükle
-        controller.setExcelData(finalData);
-        controller.setExcelType(excelType);
-        controller.filterByGroup("Tüm Ürünler");
       } else if (widget.buttonType.contains('Alfa Pen')) {
         // ALFA PEN - Yerel Excel dosyasından yükle (mevcut kod)
         String excelFileName = 'assets/excel/alfapen.xlsx';
@@ -265,6 +207,134 @@ class _CalculateScreenState extends State<CalculateScreen> {
         icon: const Icon(Icons.error_outline, color: Colors.red),
       );
       controller.isLoading.value = false;
+    }
+  }
+
+  /// İnternetten Winer verilerini çek ve cache'e kaydet
+  Future<void> _loadWinerFromOnline(String excelType) async {
+    String csvUrl =
+        'https://docs.google.com/spreadsheets/d/e/2PACX-1vRuNLxisljropuR9vv2cT_-sKLssJWI_BIXJ0jJmLbX4TXcWLCyYtWjaRGuTDjLursOuJXDCy1t-mFl/pub?output=csv';
+
+    print('Veri indiriliyor (Online): $excelType');
+
+    // İnternetten Veriyi Çek
+    final response = await http.get(Uri.parse(csvUrl));
+
+    if (response.statusCode != 200) {
+      throw Exception('Veri indirilemedi! Hata kodu: ${response.statusCode}');
+    }
+
+    // Gelen CSV Verisini Listeye Çevir (Türkçe karakter sorunu için utf8 kullanıyoruz)
+    List<List<dynamic>> csvTable =
+        const CsvToListConverter().convert(utf8.decode(response.bodyBytes));
+
+    if (csvTable.isEmpty) throw Exception("CSV dosyası boş!");
+
+    // Başlıkları (Header) Al (İlk satır)
+    List<String> headers = csvTable[0].map((e) => e.toString()).toList();
+
+    print('Bulunan başlıklar: $headers');
+
+    // Veriyi Map Formatına Çevir
+    List<Map<String, dynamic>> finalData = [];
+
+    for (var i = 1; i < csvTable.length; i++) {
+      var row = csvTable[i];
+      if (row.isEmpty) continue;
+
+      Map<String, dynamic> rowData = {};
+      for (var j = 0; j < headers.length; j++) {
+        if (j < row.length) {
+          String header = headers[j];
+          var value = row[j];
+
+          // Sayısal değerleri güvenli şekilde çevir
+          if (header.toUpperCase().contains('FİYAT') ||
+              header.toUpperCase().contains('BOY') ||
+              header.toUpperCase().contains('PAKET')) {
+            if (value is num) {
+              rowData[header] = value.toDouble();
+            } else {
+              // String ise "1.250,50" gibi formatları düzelt
+              String cleanVal = value.toString().replaceAll(',', '.').trim();
+              rowData[header] = double.tryParse(cleanVal) ?? 0.0;
+            }
+          } else {
+            rowData[header] = value;
+          }
+        }
+      }
+
+      // Boş satırları atla
+      if (rowData.isNotEmpty &&
+          rowData.values.any((v) => v != null && v.toString().isNotEmpty)) {
+        finalData.add(rowData);
+      }
+    }
+
+    print('CSV\'den yüklenen veri sayısı: ${finalData.length}');
+
+    // Veriyi cache'e kaydet
+    await CacheService.cacheWinerData(finalData);
+
+    // Veriyi Controller'a Yükle
+    controller.setExcelData(finalData);
+    controller.setExcelType(excelType);
+    controller.filterByGroup("Tüm Ürünler");
+
+    // Başarılı yükleme bildirimi
+    Get.snackbar(
+      'Veriler Güncellendi',
+      'Ürün listesi internetten başarıyla güncellendi',
+      snackPosition: SnackPosition.BOTTOM,
+      backgroundColor: Colors.green.shade100,
+      colorText: Colors.green.shade800,
+      duration: const Duration(seconds: 2),
+      icon: const Icon(Icons.cloud_done, color: Colors.green),
+    );
+  }
+
+  /// Cache'den Winer verilerini yükle
+  Future<void> _loadWinerFromCache(String excelType) async {
+    print('Cache\'den veri yükleniyor: $excelType');
+
+    final cachedData = await CacheService.getCachedWinerData();
+
+    if (cachedData != null && cachedData.isNotEmpty) {
+      print('Cache\'den yüklenen veri sayısı: ${cachedData.length}');
+
+      // Veriyi Controller'a Yükle
+      controller.setExcelData(cachedData);
+      controller.setExcelType(excelType);
+      controller.filterByGroup("Tüm Ürünler");
+
+      // Cache'den yükleme bildirimi
+      final cacheTime = await CacheService.getWinerCacheTimestamp();
+      String timeInfo = '';
+      if (cacheTime != null) {
+        final difference = DateTime.now().difference(cacheTime);
+        if (difference.inDays > 0) {
+          timeInfo = '(${difference.inDays} gün önce güncellendi)';
+        } else if (difference.inHours > 0) {
+          timeInfo = '(${difference.inHours} saat önce güncellendi)';
+        } else {
+          timeInfo = '(${difference.inMinutes} dakika önce güncellendi)';
+        }
+      }
+
+      Get.snackbar(
+        'Çevrimdışı Mod',
+        'Ürünler yerel bellekten yüklendi $timeInfo',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.orange.shade100,
+        colorText: Colors.orange.shade800,
+        duration: const Duration(seconds: 3),
+        icon: const Icon(Icons.offline_bolt, color: Colors.orange),
+      );
+    } else {
+      // Cache'de veri yok, hata göster
+      throw Exception(
+          'İnternet bağlantısı yok ve önbellekte kayıtlı veri bulunamadı. Lütfen internet bağlantınızı kontrol edin.');
     }
   }
 
