@@ -2,104 +2,127 @@ import 'package:get/get.dart';
 import 'calculate_controller_base.dart';
 
 class CalculateControllerWiner extends CalculateControllerBase {
-  final Map<String, Map<String, dynamic>> groupDefinitions60 = {
-    "Tüm Ürünler": {"startRow": 0, "endRow": -1},
-    "60 Serisi Ana Profiller": {"startRow": 0, "endRow": 23},
-    "60 3 Odacık Serisi Ana Profiller": {"startRow": 24, "endRow": 36},
-    "70 Süper Seri Profiller": {"startRow": 37, "endRow": 62},
-    "80 Seri Profiller": {"startRow": 63, "endRow": 86},
-    "Sürme Serisi Profiller": {"startRow": 87, "endRow": 122},
-    "Yalıtımlı Sürme Serisi": {"startRow": 123, "endRow": 144},
-    "Yardımcı Profiller": {"startRow": 145, "endRow": 185},
-  };
+  // GRUP sütunu adı
+  final String grupColumn = 'GRUP';
+
+  // Dinamik olarak grupları tutan liste
+  RxList<String> availableGroups = <String>[].obs;
+
+  // Excel verisi yüklendiğinde grupları otomatik çıkar
+  @override
+  void setExcelData(List<Map<String, dynamic>> data) {
+    super.setExcelData(data);
+    _extractGroupsFromData();
+  }
+
+  // Veriden benzersiz grupları çıkar
+  void _extractGroupsFromData() {
+    Set<String> groups = {"Tüm Ürünler"};
+
+    for (var product in excelData) {
+      if (product.containsKey(grupColumn)) {
+        String groupValue = product[grupColumn]?.toString().trim() ?? '';
+        if (groupValue.isNotEmpty) {
+          groups.add(groupValue);
+        }
+      }
+    }
+
+    availableGroups.assignAll(groups.toList());
+    print('Bulunan gruplar: $availableGroups');
+  }
+
+  // Mevcut grupları döndür (UI'da kullanılmak için)
+  List<String> getAvailableGroups() {
+    if (availableGroups.isEmpty) {
+      return ["Tüm Ürünler"];
+    }
+    return availableGroups.toList();
+  }
 
   @override
   void filterByGroup(String groupName) {
     selectedGroup.value = groupName;
-    
+
     if (groupName == "Tüm Ürünler") {
       filteredExcelData.assignAll(excelData);
       return;
     }
-    
-    if (!groupDefinitions60.containsKey(groupName)) {
-      filteredExcelData.assignAll(excelData);
-      return;
-    }
-    
-    var groupInfo = groupDefinitions60[groupName]!;
-    int startRow = groupInfo["startRow"] as int;
-    int endRow = groupInfo["endRow"] as int;
-    
-    if (endRow == -1) {
-      endRow = excelData.length - 1;
-    }
-    
-    List<Map<String, dynamic>> filtered = [];
-    for (int i = 0; i < excelData.length; i++) {
-      if (i >= startRow && i <= endRow) {
-        filtered.add(excelData[i]);
-      }
-    }
-    
+
+    // GRUP sütununa göre filtrele
+    List<Map<String, dynamic>> filtered = excelData.where((product) {
+      String productGroup = product[grupColumn]?.toString().trim() ?? '';
+      return productGroup == groupName;
+    }).toList();
+
     filteredExcelData.assignAll(filtered);
+    print('$groupName grubunda ${filtered.length} ürün bulundu');
   }
 
   @override
   void calculateTotalPrice() {
     double total = 0.0;
-    
+
     for (int i = 0; i < selectedProducts.length; i++) {
       final product = selectedProducts[i];
       final profilBoyuController = profilBoyuControllers[i];
       final paketController = paketControllers[i];
-      
+
       if (profilBoyuController != null && paketController != null) {
-        final profilBoyuValue = profilBoyuController.text.isEmpty 
-            ? 0.0 
+        final profilBoyuValue = profilBoyuController.text.isEmpty
+            ? 0.0
             : double.tryParse(profilBoyuController.text) ?? 0.0;
-        
-        final paketValue = paketController.text.isEmpty 
-            ? 0.0 
+
+        final paketValue = paketController.text.isEmpty
+            ? 0.0
             : double.tryParse(paketController.text) ?? 0.0;
-        
+
         double excelProfilBoyuValue = 0.0;
         double excelPaketValue = 0.0;
-        
-        if (profilBoyuColumn.isNotEmpty && product.containsKey(profilBoyuColumn)) {
+
+        if (profilBoyuColumn.isNotEmpty &&
+            product.containsKey(profilBoyuColumn)) {
           var value = product[profilBoyuColumn];
-          excelProfilBoyuValue = value is double ? value : double.tryParse(value.toString()) ?? 0.0;
+          excelProfilBoyuValue = value is double
+              ? value
+              : double.tryParse(value.toString()) ?? 0.0;
         }
-        
+
         if (paketColumn.isNotEmpty && product.containsKey(paketColumn)) {
           var value = product[paketColumn];
-          excelPaketValue = value is double ? value : double.tryParse(value.toString()) ?? 0.0;
+          excelPaketValue = value is double
+              ? value
+              : double.tryParse(value.toString()) ?? 0.0;
         }
-        
-        double toplamDeger = (profilBoyuValue * excelProfilBoyuValue) + (paketValue * excelPaketValue);
-        
+
+        double toplamDeger = (profilBoyuValue * excelProfilBoyuValue) +
+            (paketValue * excelPaketValue);
+
         if (fiyatColumn.isNotEmpty && product.containsKey(fiyatColumn)) {
           var fiyatValue = product[fiyatColumn];
-          double metreFiyati = fiyatValue is double ? fiyatValue : double.tryParse(fiyatValue.toString()) ?? 0.0;
+          double metreFiyati = fiyatValue is double
+              ? fiyatValue
+              : double.tryParse(fiyatValue.toString()) ?? 0.0;
           double urunTutari = metreFiyati * toplamDeger;
           total += urunTutari;
-          
-          Map<String, dynamic> updatedProduct = Map<String, dynamic>.from(product);
+
+          Map<String, dynamic> updatedProduct =
+              Map<String, dynamic>.from(product);
           updatedProduct['hesaplananTutar'] = urunTutari;
           updatedProduct['toplamDeger'] = toplamDeger;
           updatedProduct['profilBoyuDegeri'] = profilBoyuValue;
           updatedProduct['paketDegeri'] = paketValue;
-          
+
           updatedProduct['fiyatDegeri'] = metreFiyati;
           if (!updatedProduct.containsKey('FİYAT (Metre)')) {
             updatedProduct['FİYAT (Metre)'] = metreFiyati;
           }
-          
-          selectedProducts[i] = updatedProduct; 
+
+          selectedProducts[i] = updatedProduct;
         }
       }
     }
-    
+
     toplamTutar.value = total;
     calculateNetTutar();
   }

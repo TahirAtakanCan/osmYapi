@@ -58,34 +58,35 @@ class CalculationHistory {
 }
 
 class CalculateControllerBase extends GetxController {
-  static RxList<CalculationHistory> calculationHistory = <CalculationHistory>[].obs;
-  
+  static RxList<CalculationHistory> calculationHistory =
+      <CalculationHistory>[].obs;
+
   static CalculationHistory? calculationToEdit;
   static int? calculationToEditIndex;
-  
+
   static const int maxHistoryCount = 100;
-  
+
   String excelType = '';
 
   RxList<Map<String, dynamic>> excelData = <Map<String, dynamic>>[].obs;
   RxList<Map<String, dynamic>> filteredExcelData = <Map<String, dynamic>>[].obs;
   RxString selectedGroup = "Tüm Ürünler".obs;
-  
+
   RxList<Map<String, dynamic>> selectedProducts = <Map<String, dynamic>>[].obs;
-  
+
   RxDouble toplamTutar = 0.0.obs;
   RxDouble netTutar = 0.0.obs;
   RxDouble iskontoTutar = 0.0.obs;
   RxDouble kdvTutar = 0.0.obs;
-  
+
   final iskontoController = TextEditingController(text: '');
   final kdvController = TextEditingController(text: '');
-  
+
   final Map<int, TextEditingController> profilBoyuControllers = {};
   final Map<int, TextEditingController> paketControllers = {};
-  
+
   RxBool isLoading = true.obs;
-  
+
   String codeColumn = '';
   String nameColumn = '';
   String profilBoyuColumn = 'PROFİL BOYU (metre)';
@@ -96,7 +97,7 @@ class CalculateControllerBase extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    
+
     iskontoController.addListener(calculateNetTutar);
     kdvController.addListener(calculateNetTutar);
   }
@@ -113,12 +114,12 @@ class CalculateControllerBase extends GetxController {
   // Grupları filtrele - alt sınıflar tarafından override edilebilir
   void filterByGroup(String groupName) {
     selectedGroup.value = groupName;
-    
+
     if (groupName == "Tüm Ürünler") {
       filteredExcelData.assignAll(excelData);
       return;
     }
-    
+
     filteredExcelData.assignAll(excelData);
   }
 
@@ -126,36 +127,31 @@ class CalculateControllerBase extends GetxController {
   void addProduct(Map<String, dynamic> product) {
     bool isAlreadyAdded = false;
     if (codeColumn.isNotEmpty && nameColumn.isNotEmpty) {
-      isAlreadyAdded = selectedProducts.any(
-        (existingProduct) => 
-          existingProduct[codeColumn] == product[codeColumn] && 
-          existingProduct[nameColumn] == product[nameColumn]
-      );
+      isAlreadyAdded = selectedProducts.any((existingProduct) =>
+          existingProduct[codeColumn] == product[codeColumn] &&
+          existingProduct[nameColumn] == product[nameColumn]);
     }
-    
+
     if (!isAlreadyAdded) {
       final newProductIndex = selectedProducts.length;
-      
+
       selectedProducts.add(Map<String, dynamic>.from(product));
-      
+
       profilBoyuControllers[newProductIndex] = TextEditingController(text: '');
       paketControllers[newProductIndex] = TextEditingController(text: '');
-      
+
       profilBoyuControllers[newProductIndex]!.addListener(() {
         calculateTotalPrice();
       });
-      
+
       paketControllers[newProductIndex]!.addListener(() {
         calculateTotalPrice();
       });
-      
+
       calculateTotalPrice();
     } else {
-      Get.snackbar(
-        'Uyarı',
-        'Bu ürün zaten eklenmiş!',
-        snackPosition: SnackPosition.BOTTOM
-      );
+      Get.snackbar('Uyarı', 'Bu ürün zaten eklenmiş!',
+          snackPosition: SnackPosition.BOTTOM);
     }
   }
 
@@ -165,10 +161,10 @@ class CalculateControllerBase extends GetxController {
       profilBoyuControllers[index]?.dispose();
       paketControllers[index]?.dispose();
       selectedProducts.removeAt(index);
-      
+
       final Map<int, TextEditingController> updatedProfileControllers = {};
       final Map<int, TextEditingController> updatedPaketControllers = {};
-      
+
       for (int i = 0; i < selectedProducts.length; i++) {
         if (i >= index) {
           updatedProfileControllers[i] = profilBoyuControllers[i + 1]!;
@@ -178,32 +174,31 @@ class CalculateControllerBase extends GetxController {
           updatedPaketControllers[i] = paketControllers[i]!;
         }
       }
-      
+
       profilBoyuControllers.clear();
       paketControllers.clear();
       profilBoyuControllers.addAll(updatedProfileControllers);
       paketControllers.addAll(updatedPaketControllers);
-      
+
       calculateTotalPrice();
     }
   }
 
   // Toplam tutarı hesaplama fonksiyonu - alt sınıflar tarafından override edilmeli
-  void calculateTotalPrice() {
-  }
+  void calculateTotalPrice() {}
 
   // Net tutarı hesaplama fonksiyonu - alt sınıflar tarafından çağrılabilmesi için public yapıldı
   void calculateNetTutar() {
     final iskonto = double.tryParse(iskontoController.text) ?? 0.0;
-    
+
     final kdvText = kdvController.text.trim();
     final double? kdv = kdvText.isEmpty ? null : double.tryParse(kdvText);
-    
+
     final iskontoMiktar = toplamTutar.value * iskonto / 100;
     final aratutar = toplamTutar.value - iskontoMiktar;
-    
+
     final kdvMiktar = kdv != null ? aratutar * kdv / 100 : 0.0;
-    
+
     iskontoTutar.value = iskontoMiktar;
     kdvTutar.value = kdvMiktar;
     netTutar.value = aratutar + kdvMiktar;
@@ -216,7 +211,8 @@ class CalculateControllerBase extends GetxController {
         codeColumn = 'ÜRÜN KODU';
       } else {
         for (var key in excelData[0].keys) {
-          if (key.toLowerCase().contains('kod') || key.toLowerCase().contains('code')) {
+          if (key.toLowerCase().contains('kod') ||
+              key.toLowerCase().contains('code')) {
             codeColumn = key;
             break;
           }
@@ -230,8 +226,10 @@ class CalculateControllerBase extends GetxController {
         nameColumn = 'ÜRÜN ADI';
       } else {
         for (var key in excelData[0].keys) {
-          if (key.toLowerCase().contains('ad') || key.toLowerCase().contains('name') || 
-              key.toLowerCase().contains('ürün') || key.toLowerCase().contains('product')) {
+          if (key.toLowerCase().contains('ad') ||
+              key.toLowerCase().contains('name') ||
+              key.toLowerCase().contains('ürün') ||
+              key.toLowerCase().contains('product')) {
             nameColumn = key;
             break;
           }
@@ -246,20 +244,35 @@ class CalculateControllerBase extends GetxController {
         profilBoyuColumn = 'PROFİL BOYU (metre)';
       } else {
         for (var key in excelData[0].keys) {
-          if (key.toLowerCase().contains('profil') && key.toLowerCase().contains('boy')) {
+          if (key.toLowerCase().contains('profil') &&
+              key.toLowerCase().contains('boy')) {
             profilBoyuColumn = key;
             break;
           }
         }
       }
 
-      if (excelData[0].containsKey('PAKET')) {
+      if (excelData[0].containsKey('PAKET (Metre)')) {
+        paketColumn = 'PAKET (Metre)';
+      } else if (excelData[0].containsKey('PAKET')) {
         paketColumn = 'PAKET';
       } else {
         for (var key in excelData[0].keys) {
-          if (key.toLowerCase().contains('paket')) {
+          // Önce "paket" ve "metre" içeren sütunu ara
+          if (key.toLowerCase().contains('paket') &&
+              key.toLowerCase().contains('metre')) {
             paketColumn = key;
             break;
+          }
+        }
+        // Bulunamadıysa sadece "paket" içeren sütunu ara (ama "adet" içermeyeni)
+        if (paketColumn.isEmpty || paketColumn == 'PAKET') {
+          for (var key in excelData[0].keys) {
+            if (key.toLowerCase().contains('paket') &&
+                !key.toLowerCase().contains('adet')) {
+              paketColumn = key;
+              break;
+            }
           }
         }
       }
@@ -268,8 +281,10 @@ class CalculateControllerBase extends GetxController {
         fiyatColumn = 'FİYAT (Metre)';
       } else {
         for (var key in excelData[0].keys) {
-          if (key.toLowerCase().contains('fiyat') || key.toLowerCase().contains('ucret') || 
-              key.toLowerCase().contains('tutar') || key.toLowerCase().contains('price')) {
+          if (key.toLowerCase().contains('fiyat') ||
+              key.toLowerCase().contains('ucret') ||
+              key.toLowerCase().contains('tutar') ||
+              key.toLowerCase().contains('price')) {
             fiyatColumn = key;
             break;
           }
@@ -286,6 +301,16 @@ class CalculateControllerBase extends GetxController {
           }
         }
       }
+
+      // Debug: Bulunan sütun isimlerini yazdır
+      print('=== Bulunan Sütun İsimleri ===');
+      print('Kod Sütunu: $codeColumn');
+      print('Ad Sütunu: $nameColumn');
+      print('Profil Boyu Sütunu: $profilBoyuColumn');
+      print('Paket Sütunu: $paketColumn');
+      print('Fiyat Sütunu: $fiyatColumn');
+      print('Tüm Sütunlar: ${excelData[0].keys.toList()}');
+      print('==============================');
     }
   }
 
@@ -296,12 +321,12 @@ class CalculateControllerBase extends GetxController {
     setColumnNames();
     isLoading.value = false;
   }
-  
+
   // Excel dosya tipini ayarla (58 nolu, 60 nolu)
   void setExcelType(String type) {
     excelType = type;
   }
-  
+
   // Hesaplamayı kaydet
   Future<void> saveCalculation(String customerName) async {
     if (selectedProducts.length >= 1) {
@@ -312,21 +337,23 @@ class CalculateControllerBase extends GetxController {
 
       for (var product in selectedProducts) {
         Map<String, dynamic> copy = Map<String, dynamic>.from(product);
-        
-        if (!copy.containsKey('FİYAT (Metre)') && copy.containsKey(fiyatColumn)) {
+
+        if (!copy.containsKey('FİYAT (Metre)') &&
+            copy.containsKey(fiyatColumn)) {
           copy['FİYAT (Metre)'] = copy[fiyatColumn];
         }
-        
-        if (!copy.containsKey('FİYAT (Metre)') && copy.containsKey('fiyatDegeri')) {
+
+        if (!copy.containsKey('FİYAT (Metre)') &&
+            copy.containsKey('fiyatDegeri')) {
           copy['FİYAT (Metre)'] = copy['fiyatDegeri'];
         }
-        
+
         copy['iskontoOrani'] = iskontoValue;
         copy['kdvOrani'] = kdvValue;
-        
+
         productCopies.add(copy);
       }
-      
+
       final calculation = CalculationHistory(
         date: DateTime.now(),
         excelType: excelType,
@@ -336,41 +363,40 @@ class CalculateControllerBase extends GetxController {
         products: productCopies,
         customerName: customerName,
       );
-      
+
       calculationHistory.insert(0, calculation);
-      
+
       if (calculationHistory.length > maxHistoryCount) {
-        calculationHistory.removeRange(maxHistoryCount, calculationHistory.length);
+        calculationHistory.removeRange(
+            maxHistoryCount, calculationHistory.length);
       }
-      
+
       await saveHistoryToStorage();
     }
   }
-  
+
   // Geçmişi kalıcı depolamaya kaydet
   static Future<void> saveHistoryToStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final historyJsonList = calculationHistory.map((calc) => calc.toJson()).toList();
+      final historyJsonList =
+          calculationHistory.map((calc) => calc.toJson()).toList();
       await prefs.setString('calculation_history', jsonEncode(historyJsonList));
-    } catch (e) {
-    }
+    } catch (e) {}
   }
-  
+
   // Geçmişi kalıcı depolamadan yükle
   static Future<void> loadHistoryFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final historyJson = prefs.getString('calculation_history');
-      
+
       if (historyJson != null && historyJson.isNotEmpty) {
         final List<dynamic> jsonList = jsonDecode(historyJson);
-        calculationHistory.value = jsonList
-            .map((json) => CalculationHistory.fromJson(json))
-            .toList();
+        calculationHistory.value =
+            jsonList.map((json) => CalculationHistory.fromJson(json)).toList();
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   // Tüm hesaplama geçmişini silme
@@ -379,7 +405,7 @@ class CalculateControllerBase extends GetxController {
       calculationHistory.clear();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('calculation_history');
-      
+
       Get.snackbar(
         'Başarılı',
         'Tüm hesaplama geçmişi silindi',
@@ -398,16 +424,18 @@ class CalculateControllerBase extends GetxController {
       );
     }
   }
-  
+
   // Seçilen hesaplamaları silme
-  static Future<void> deleteSelectedCalculations(List<CalculationHistory> selectedCalculations) async {
+  static Future<void> deleteSelectedCalculations(
+      List<CalculationHistory> selectedCalculations) async {
     try {
       if (selectedCalculations.isEmpty) return;
-      
-      calculationHistory.removeWhere((calc) => selectedCalculations.contains(calc));
-      
+
+      calculationHistory
+          .removeWhere((calc) => selectedCalculations.contains(calc));
+
       await saveHistoryToStorage();
-      
+
       Get.snackbar(
         'Başarılı',
         '${selectedCalculations.length} hesaplama silindi',
@@ -428,11 +456,12 @@ class CalculateControllerBase extends GetxController {
   }
 
   // Hesaplama geçmişi için PDF oluştur
-  static Future<File?> generateCalculationPdf(CalculationHistory calculation, {String? fiyatColumn}) async {
+  static Future<File?> generateCalculationPdf(CalculationHistory calculation,
+      {String? fiyatColumn}) async {
     try {
       bool hasProfilBoyu = false;
       bool hasPaket = false;
-      
+
       if (calculation.products.isNotEmpty) {
         for (var product in calculation.products) {
           if (product.containsKey('profilBoyuDegeri')) {
@@ -441,7 +470,7 @@ class CalculateControllerBase extends GetxController {
               hasProfilBoyu = true;
             }
           }
-          
+
           if (product.containsKey('paketDegeri')) {
             final value = product['paketDegeri'];
             if (value != null && (value is num) && value > 0) {
@@ -449,14 +478,18 @@ class CalculateControllerBase extends GetxController {
             }
           }
         }
-        
+
         bool containsPrice = false;
         String usedPriceColumn = "";
-        
+
         List<String> possiblePriceColumns = [
-          'FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE'
+          'FİYAT (Metre)',
+          'fiyatDegeri',
+          'FIYAT',
+          'fiyat',
+          'METER_PRICE'
         ];
-        
+
         for (var priceCol in possiblePriceColumns) {
           if (calculation.products[0].containsKey(priceCol)) {
             containsPrice = true;
@@ -464,7 +497,7 @@ class CalculateControllerBase extends GetxController {
             break;
           }
         }
-        
+
         if (!containsPrice) {
           for (var key in calculation.products[0].keys) {
             if (calculation.products[0][key] is num) {
@@ -477,23 +510,23 @@ class CalculateControllerBase extends GetxController {
             }
           }
         }
-        
+
         if (containsPrice) {
           fiyatColumn = usedPriceColumn;
         }
       }
-      
+
       bool needsPermission = false;
       if (Platform.isAndroid) {
         DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
         AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
         int sdkVersion = androidInfo.version.sdkInt;
-        
+
         if (sdkVersion < 30) {
           needsPermission = true;
         }
       }
-      
+
       if (needsPermission) {
         var status = await Permission.storage.status;
         if (!status.isGranted) {
@@ -510,24 +543,25 @@ class CalculateControllerBase extends GetxController {
           }
         }
       }
-      
+
       final pdf = pw.Document(
-        compress: true, 
+        compress: true,
         version: PdfVersion.pdf_1_5,
         pageMode: PdfPageMode.outlines,
       );
-      
-      final ByteData logoData = await rootBundle.load('assets/images/osmyapilogo.jpg');
+
+      final ByteData logoData =
+          await rootBundle.load('assets/images/osmyapilogo.jpg');
       final Uint8List logoBytes = logoData.buffer.asUint8List();
 
       final dateFormatter = DateFormat('dd.MM.yyyy HH:mm');
       final formattedDate = dateFormatter.format(calculation.date);
-      
+
       double iskontoOrani = 0.0;
       double kdvOrani = 0.0;
       bool hasIskonto = false;
       bool hasKdv = false;
-      
+
       if (calculation.products.isNotEmpty) {
         if (calculation.products[0].containsKey('iskontoOrani')) {
           var iskontoValue = calculation.products[0]['iskontoOrani'];
@@ -536,7 +570,7 @@ class CalculateControllerBase extends GetxController {
             hasIskonto = true;
           }
         }
-        
+
         if (calculation.products[0].containsKey('kdvOrani')) {
           var kdvValue = calculation.products[0]['kdvOrani'];
           if (kdvValue is num && kdvValue > 0) {
@@ -545,35 +579,39 @@ class CalculateControllerBase extends GetxController {
           }
         }
       }
-      
-      if (!hasIskonto && calculation.totalAmount > 0 && calculation.netAmount > 0) {
+
+      if (!hasIskonto &&
+          calculation.totalAmount > 0 &&
+          calculation.netAmount > 0) {
         if (calculation.totalAmount != calculation.netAmount) {
           hasIskonto = true;
           hasKdv = true;
           if (calculation.totalAmount > calculation.netAmount) {
-            iskontoOrani = 100 * (1 - calculation.netAmount / calculation.totalAmount);
+            iskontoOrani =
+                100 * (1 - calculation.netAmount / calculation.totalAmount);
           } else {
-            kdvOrani = 100 * (calculation.netAmount / calculation.totalAmount - 1);
+            kdvOrani =
+                100 * (calculation.netAmount / calculation.totalAmount - 1);
           }
         }
       }
-      
+
       String fixTurkishChars(String text) {
         return text
-          .replaceAll('ı', 'i')
-          .replaceAll('İ', 'I')
-          .replaceAll('ğ', 'g')
-          .replaceAll('Ğ', 'G')
-          .replaceAll('ü', 'u')
-          .replaceAll('Ü', 'U')
-          .replaceAll('ş', 's')
-          .replaceAll('Ş', 'S')
-          .replaceAll('ö', 'o')
-          .replaceAll('Ö', 'O')
-          .replaceAll('ç', 'c')
-          .replaceAll('Ç', 'C');
+            .replaceAll('ı', 'i')
+            .replaceAll('İ', 'I')
+            .replaceAll('ğ', 'g')
+            .replaceAll('Ğ', 'G')
+            .replaceAll('ü', 'u')
+            .replaceAll('Ü', 'U')
+            .replaceAll('ş', 's')
+            .replaceAll('Ş', 'S')
+            .replaceAll('ö', 'o')
+            .replaceAll('Ö', 'O')
+            .replaceAll('ç', 'c')
+            .replaceAll('Ç', 'C');
       }
-      
+
       pdf.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
@@ -582,19 +620,22 @@ class CalculateControllerBase extends GetxController {
             return pw.Column(
               children: [
                 pw.Row(
-                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                  children: [
-                    pw.Image(pw.MemoryImage(logoBytes), width: 120),
-                    pw.Column(
-                      crossAxisAlignment: pw.CrossAxisAlignment.end,
-                      children: [
-                        pw.Text('OSM YAPI', style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold)),
-                        pw.SizedBox(height: 5),
-                        pw.Text('Satis Raporu', style: pw.TextStyle(fontSize: 16)),
-                      ],
-                    )
-                  ]
-                ),
+                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                    children: [
+                      pw.Image(pw.MemoryImage(logoBytes), width: 120),
+                      pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.end,
+                        children: [
+                          pw.Text('OSM YAPI',
+                              style: pw.TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: pw.FontWeight.bold)),
+                          pw.SizedBox(height: 5),
+                          pw.Text('Satis Raporu',
+                              style: pw.TextStyle(fontSize: 16)),
+                        ],
+                      )
+                    ]),
                 pw.SizedBox(height: 5),
                 pw.Divider(),
               ],
@@ -613,31 +654,36 @@ class CalculateControllerBase extends GetxController {
                   pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('Satis Detaylari', 
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)
-                      ),
-                      pw.Text('Tarih: $formattedDate', style: const pw.TextStyle(fontSize: 12)),
+                      pw.Text('Satis Detaylari',
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                      pw.Text('Tarih: $formattedDate',
+                          style: const pw.TextStyle(fontSize: 12)),
                     ],
                   ),
                   pw.SizedBox(height: 10),
                   pw.Row(
                     children: [
-                      pw.Expanded(child: pw.Text('Urun Sayisi: ${calculation.productCount}')),
+                      pw.Expanded(
+                          child: pw.Text(
+                              'Urun Sayisi: ${calculation.productCount}')),
                     ],
                   ),
                   if (calculation.customerName.isNotEmpty) ...[
                     pw.SizedBox(height: 5),
-                    pw.Text('Musteri/Kurum: ${fixTurkishChars(calculation.customerName)}',
-                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14),
+                    pw.Text(
+                      'Musteri/Kurum: ${fixTurkishChars(calculation.customerName)}',
+                      style: pw.TextStyle(
+                          fontWeight: pw.FontWeight.bold, fontSize: 14),
                     ),
                   ],
                 ],
               ),
             ),
-            
             pw.SizedBox(height: 20),
-            
-            pw.Text('Urun Listesi', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+            pw.Text('Urun Listesi',
+                style:
+                    pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
             pw.SizedBox(height: 10),
             pw.Table(
               border: pw.TableBorder.all(color: PdfColors.grey400),
@@ -645,21 +691,36 @@ class CalculateControllerBase extends GetxController {
                 0: const pw.FlexColumnWidth(1.5),
                 1: const pw.FlexColumnWidth(3),
                 if (hasProfilBoyu) 2: const pw.FlexColumnWidth(1),
-                if (hasPaket) (hasProfilBoyu ? 3 : 2): const pw.FlexColumnWidth(1),
-                (hasProfilBoyu && hasPaket) ? 4 : (hasProfilBoyu || hasPaket ? 3 : 2): const pw.FlexColumnWidth(1.2),
-                (hasProfilBoyu && hasPaket) ? 5 : (hasProfilBoyu || hasPaket ? 4 : 3): const pw.FlexColumnWidth(1.2),
-                
-                if (hasIskonto) ((hasProfilBoyu && hasPaket) ? 6 : (hasProfilBoyu || hasPaket ? 5 : 4)): const pw.FlexColumnWidth(1.2),
-                
-                if (hasKdv) ((hasProfilBoyu && hasPaket) ? (hasIskonto ? 7 : 6) : 
-                            (hasProfilBoyu || hasPaket ? (hasIskonto ? 6 : 5) : 
-                            (hasIskonto ? 5 : 4))): const pw.FlexColumnWidth(1.2),
-                
-                ((hasProfilBoyu && hasPaket) ? 
-                    (hasIskonto ? (hasKdv ? 8 : 7) : (hasKdv ? 7 : 6)) : 
-                    (hasProfilBoyu || hasPaket ? 
-                        (hasIskonto ? (hasKdv ? 7 : 6) : (hasKdv ? 6 : 5)) : 
-                        (hasIskonto ? (hasKdv ? 6 : 5) : (hasKdv ? 5 : 4)))): const pw.FlexColumnWidth(1.5),
+                if (hasPaket)
+                  (hasProfilBoyu ? 3 : 2): const pw.FlexColumnWidth(1),
+                (hasProfilBoyu && hasPaket)
+                        ? 4
+                        : (hasProfilBoyu || hasPaket ? 3 : 2):
+                    const pw.FlexColumnWidth(1.2),
+                (hasProfilBoyu && hasPaket)
+                        ? 5
+                        : (hasProfilBoyu || hasPaket ? 4 : 3):
+                    const pw.FlexColumnWidth(1.2),
+                if (hasIskonto)
+                  ((hasProfilBoyu && hasPaket)
+                          ? 6
+                          : (hasProfilBoyu || hasPaket ? 5 : 4)):
+                      const pw.FlexColumnWidth(1.2),
+                if (hasKdv)
+                  ((hasProfilBoyu && hasPaket)
+                          ? (hasIskonto ? 7 : 6)
+                          : (hasProfilBoyu || hasPaket
+                              ? (hasIskonto ? 6 : 5)
+                              : (hasIskonto ? 5 : 4))):
+                      const pw.FlexColumnWidth(1.2),
+                ((hasProfilBoyu && hasPaket)
+                        ? (hasIskonto ? (hasKdv ? 8 : 7) : (hasKdv ? 7 : 6))
+                        : (hasProfilBoyu || hasPaket
+                            ? (hasIskonto ? (hasKdv ? 7 : 6) : (hasKdv ? 6 : 5))
+                            : (hasIskonto
+                                ? (hasKdv ? 6 : 5)
+                                : (hasKdv ? 5 : 4)))):
+                    const pw.FlexColumnWidth(1.5),
               },
               children: [
                 pw.TableRow(
@@ -667,113 +728,137 @@ class CalculateControllerBase extends GetxController {
                   children: [
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Urun Kodu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Urun Kodu',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Urun Adi', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Urun Adi',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
-                    if (hasProfilBoyu) pw.Padding(
+                    if (hasProfilBoyu)
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Profil Boyu',
+                            style:
+                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      ),
+                    if (hasPaket)
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Paket',
+                            style:
+                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      ),
+                    pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Profil Boyu', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    ),
-                    if (hasPaket) pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Paket', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Toplam Metretül',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Toplam Metretül', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Liste Fiyati',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
+                    if (hasIskonto)
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('Iskontolu Birim Fiyat',
+                            style:
+                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      ),
+                    if (hasKdv)
+                      pw.Padding(
+                        padding: const pw.EdgeInsets.all(5),
+                        child: pw.Text('KDV\'li Birim Fiyat',
+                            style:
+                                pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      ),
                     pw.Padding(
                       padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Liste Fiyati', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    ),
-                    if (hasIskonto) pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Iskontolu Birim Fiyat', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    ),
-                    if (hasKdv) pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('KDV\'li Birim Fiyat', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-                    ),
-                    pw.Padding(
-                      padding: const pw.EdgeInsets.all(5),
-                      child: pw.Text('Toplam', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      child: pw.Text('Toplam',
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
                     ),
                   ],
                 ),
-                
                 for (var product in calculation.products)
                   pw.TableRow(
                     children: [
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          product.containsKey('ÜRÜN KODU') ? 
-                          fixTurkishChars(product['ÜRÜN KODU'].toString()) : ''
-                        ),
+                        child: pw.Text(product.containsKey('ÜRÜN KODU')
+                            ? fixTurkishChars(product['ÜRÜN KODU'].toString())
+                            : ''),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          product.containsKey('ÜRÜN ADI') ? 
-                          fixTurkishChars(product['ÜRÜN ADI'].toString()) : ''
-                        ),
+                        child: pw.Text(product.containsKey('ÜRÜN ADI')
+                            ? fixTurkishChars(product['ÜRÜN ADI'].toString())
+                            : ''),
                       ),
-                      if (hasProfilBoyu) pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          product.containsKey('profilBoyuDegeri') ? 
-                          (() {
-                            final value = product['profilBoyuDegeri'];
-                            
-                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
-                          })() : '0'
+                      if (hasProfilBoyu)
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(product.containsKey('profilBoyuDegeri')
+                              ? (() {
+                                  final value = product['profilBoyuDegeri'];
+
+                                  return value % 1 == 0
+                                      ? '${value.toInt()}'
+                                      : '${value.toStringAsFixed(2)}';
+                                })()
+                              : '0'),
                         ),
-                      ),
-                      if (hasPaket) pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          product.containsKey('paketDegeri') ? 
-                          (() {
-                            final value = product['paketDegeri'];
-                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
-                          })() : '0'
+                      if (hasPaket)
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(product.containsKey('paketDegeri')
+                              ? (() {
+                                  final value = product['paketDegeri'];
+                                  return value % 1 == 0
+                                      ? '${value.toInt()}'
+                                      : '${value.toStringAsFixed(2)}';
+                                })()
+                              : '0'),
                         ),
-                      ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          product.containsKey('toplamDeger') ? 
-                          (() {
-                            final value = product['toplamDeger'];
-                            return value % 1 == 0 ? '${value.toInt()}' : '${value.toStringAsFixed(2)}';
-                          })() : '1'
-                        ),
+                        child: pw.Text(product.containsKey('toplamDeger')
+                            ? (() {
+                                final value = product['toplamDeger'];
+                                return value % 1 == 0
+                                    ? '${value.toInt()}'
+                                    : '${value.toStringAsFixed(2)}';
+                              })()
+                            : '1'),
                       ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
                           (() {
                             List<String> priceFields = [
-                              'FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE'
+                              'FİYAT (Metre)',
+                              'fiyatDegeri',
+                              'FIYAT',
+                              'fiyat',
+                              'METER_PRICE'
                             ];
-                            
+
                             if (fiyatColumn != null && fiyatColumn.isNotEmpty) {
                               priceFields.add(fiyatColumn);
                             }
-                            
+
                             for (var field in priceFields) {
                               if (product.containsKey(field)) {
                                 var fiyat = product[field];
-                                
+
                                 if (fiyat is num) {
                                   return '${fiyat.toStringAsFixed(2)} TL';
-                                }
-                                else if (fiyat is String) {
-                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
-                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
+                                } else if (fiyat is String) {
+                                  String cleanFiyat =
+                                      fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
+                                  double? parsedFiyat = double.tryParse(
+                                      cleanFiyat.replaceAll(',', '.'));
                                   if (parsedFiyat != null) {
                                     return '${parsedFiyat.toStringAsFixed(2)} TL';
                                   }
@@ -781,81 +866,106 @@ class CalculateControllerBase extends GetxController {
                                 }
                               }
                             }
-                            
+
                             for (var key in product.keys) {
                               var value = product[key];
-                              if (value is num && value > 10 && 
-                                  !['hesaplananTutar', 'toplamDeger', 'profilBoyuDegeri', 'paketDegeri']
-                                      .contains(key)) {
+                              if (value is num &&
+                                  value > 10 &&
+                                  ![
+                                    'hesaplananTutar',
+                                    'toplamDeger',
+                                    'profilBoyuDegeri',
+                                    'paketDegeri'
+                                  ].contains(key)) {
                                 return '${value.toStringAsFixed(2)} TL';
                               }
                             }
-                            
+
                             return '';
                           })(),
                           style: const pw.TextStyle(fontSize: 12),
                         ),
                       ),
-                      if (hasIskonto) pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          (() {
-                            double listeFiyati = 0.0;
-                            for (var field in ['FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE']) {
-                              if (product.containsKey(field)) {
-                                var fiyat = product[field];
-                                if (fiyat is num) {
-                                  listeFiyati = fiyat.toDouble();
-                                  break;
-                                } else if (fiyat is String) {
-                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
-                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
-                                  if (parsedFiyat != null) {
-                                    listeFiyati = parsedFiyat;
+                      if (hasIskonto)
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            (() {
+                              double listeFiyati = 0.0;
+                              for (var field in [
+                                'FİYAT (Metre)',
+                                'fiyatDegeri',
+                                'FIYAT',
+                                'fiyat',
+                                'METER_PRICE'
+                              ]) {
+                                if (product.containsKey(field)) {
+                                  var fiyat = product[field];
+                                  if (fiyat is num) {
+                                    listeFiyati = fiyat.toDouble();
                                     break;
+                                  } else if (fiyat is String) {
+                                    String cleanFiyat = fiyat.replaceAll(
+                                        RegExp(r'[^0-9.,]'), '');
+                                    double? parsedFiyat = double.tryParse(
+                                        cleanFiyat.replaceAll(',', '.'));
+                                    if (parsedFiyat != null) {
+                                      listeFiyati = parsedFiyat;
+                                      break;
+                                    }
                                   }
                                 }
                               }
-                            }
-                            
-                            double iskontoluBirimFiyat = listeFiyati * (1 - iskontoOrani / 100);
-                            return '${iskontoluBirimFiyat.toStringAsFixed(2)} TL';
-                          })(),
-                          style: const pw.TextStyle(fontSize: 12),
+
+                              double iskontoluBirimFiyat =
+                                  listeFiyati * (1 - iskontoOrani / 100);
+                              return '${iskontoluBirimFiyat.toStringAsFixed(2)} TL';
+                            })(),
+                            style: const pw.TextStyle(fontSize: 12),
+                          ),
                         ),
-                      ),
-                      if (hasKdv) pw.Padding(
-                        padding: const pw.EdgeInsets.all(5),
-                        child: pw.Text(
-                          (() {
-                            double listeFiyati = 0.0;
-                            for (var field in ['FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE']) {
-                              if (product.containsKey(field)) {
-                                var fiyat = product[field];
-                                if (fiyat is num) {
-                                  listeFiyati = fiyat.toDouble();
-                                  break;
-                                } else if (fiyat is String) {
-                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
-                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
-                                  if (parsedFiyat != null) {
-                                    listeFiyati = parsedFiyat;
+                      if (hasKdv)
+                        pw.Padding(
+                          padding: const pw.EdgeInsets.all(5),
+                          child: pw.Text(
+                            (() {
+                              double listeFiyati = 0.0;
+                              for (var field in [
+                                'FİYAT (Metre)',
+                                'fiyatDegeri',
+                                'FIYAT',
+                                'fiyat',
+                                'METER_PRICE'
+                              ]) {
+                                if (product.containsKey(field)) {
+                                  var fiyat = product[field];
+                                  if (fiyat is num) {
+                                    listeFiyati = fiyat.toDouble();
                                     break;
+                                  } else if (fiyat is String) {
+                                    String cleanFiyat = fiyat.replaceAll(
+                                        RegExp(r'[^0-9.,]'), '');
+                                    double? parsedFiyat = double.tryParse(
+                                        cleanFiyat.replaceAll(',', '.'));
+                                    if (parsedFiyat != null) {
+                                      listeFiyati = parsedFiyat;
+                                      break;
+                                    }
                                   }
                                 }
                               }
-                            }
-                            
-                            double iskontoluBirimFiyat = hasIskonto 
-                                ? listeFiyati * (1 - iskontoOrani / 100) 
-                                : listeFiyati;
-                                
-                            double kdvliBirimFiyat = iskontoluBirimFiyat * (1 + kdvOrani / 100);
-                            return '${kdvliBirimFiyat.toStringAsFixed(2)} TL';
-                          })(),
-                          style: const pw.TextStyle(fontSize: 12),
+
+                              double iskontoluBirimFiyat = hasIskonto
+                                  ? listeFiyati * (1 - iskontoOrani / 100)
+                                  : listeFiyati;
+
+                              double kdvliBirimFiyat =
+                                  iskontoluBirimFiyat * (1 + kdvOrani / 100);
+                              return '${kdvliBirimFiyat.toStringAsFixed(2)} TL';
+                            })(),
+                            style: const pw.TextStyle(fontSize: 12),
+                          ),
                         ),
-                      ),
                       pw.Padding(
                         padding: const pw.EdgeInsets.all(5),
                         child: pw.Text(
@@ -863,19 +973,28 @@ class CalculateControllerBase extends GetxController {
                             double toplamMetretul = 1.0;
                             if (product.containsKey('toplamDeger')) {
                               var value = product['toplamDeger'];
-                              toplamMetretul = value is num ? value.toDouble() : 1.0;
+                              toplamMetretul =
+                                  value is num ? value.toDouble() : 1.0;
                             }
-                            
+
                             double listeFiyati = 0.0;
-                            for (var field in ['FİYAT (Metre)', 'fiyatDegeri', 'FIYAT', 'fiyat', 'METER_PRICE']) {
+                            for (var field in [
+                              'FİYAT (Metre)',
+                              'fiyatDegeri',
+                              'FIYAT',
+                              'fiyat',
+                              'METER_PRICE'
+                            ]) {
                               if (product.containsKey(field)) {
                                 var fiyat = product[field];
                                 if (fiyat is num) {
                                   listeFiyati = fiyat.toDouble();
                                   break;
                                 } else if (fiyat is String) {
-                                  String cleanFiyat = fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
-                                  double? parsedFiyat = double.tryParse(cleanFiyat.replaceAll(',', '.'));
+                                  String cleanFiyat =
+                                      fiyat.replaceAll(RegExp(r'[^0-9.,]'), '');
+                                  double? parsedFiyat = double.tryParse(
+                                      cleanFiyat.replaceAll(',', '.'));
                                   if (parsedFiyat != null) {
                                     listeFiyati = parsedFiyat;
                                     break;
@@ -883,22 +1002,24 @@ class CalculateControllerBase extends GetxController {
                                 }
                               }
                             }
-                            
-                            double iskontoluBirimFiyat = hasIskonto 
-                                ? listeFiyati * (1 - iskontoOrani / 100) 
+
+                            double iskontoluBirimFiyat = hasIskonto
+                                ? listeFiyati * (1 - iskontoOrani / 100)
                                 : listeFiyati;
-                            
-                            double kdvliBirimFiyat = hasKdv 
+
+                            double kdvliBirimFiyat = hasKdv
                                 ? iskontoluBirimFiyat * (1 + kdvOrani / 100)
                                 : iskontoluBirimFiyat;
-                            
+
                             double hesaplananToplam;
                             if (hasKdv) {
-                              hesaplananToplam = kdvliBirimFiyat * toplamMetretul;
+                              hesaplananToplam =
+                                  kdvliBirimFiyat * toplamMetretul;
                             } else {
-                              hesaplananToplam = iskontoluBirimFiyat * toplamMetretul;
+                              hesaplananToplam =
+                                  iskontoluBirimFiyat * toplamMetretul;
                             }
-                            
+
                             return '${hesaplananToplam.toStringAsFixed(2)} TL';
                           })(),
                           style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
@@ -908,20 +1029,22 @@ class CalculateControllerBase extends GetxController {
                   ),
               ],
             ),
-            
             pw.SizedBox(height: 20),
-            
             pw.Container(
               child: pw.Column(
                 children: [
                   pw.SizedBox(height: 5),
                   pw.Divider(color: PdfColors.grey300),
-                  pw.SizedBox(height: 5),                  pw.Row(
+                  pw.SizedBox(height: 5),
+                  pw.Row(
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
-                      pw.Text('NET TUTAR', style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
-                      pw.Text('${calculation.netAmount.toStringAsFixed(2)} TL', 
-                        style: pw.TextStyle(fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                      pw.Text('NET TUTAR',
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 14)),
+                      pw.Text('${calculation.netAmount.toStringAsFixed(2)} TL',
+                          style: pw.TextStyle(
+                              fontWeight: pw.FontWeight.bold, fontSize: 14)),
                     ],
                   ),
                   if (!hasKdv) ...[
@@ -929,8 +1052,11 @@ class CalculateControllerBase extends GetxController {
                     pw.Row(
                       mainAxisAlignment: pw.MainAxisAlignment.center,
                       children: [
-                        pw.Text(fixTurkishChars('Fiyatlarımıza KDV Dahil Değildir.'), 
-                          style: pw.TextStyle(fontSize: 12, fontStyle: pw.FontStyle.italic)),
+                        pw.Text(
+                            fixTurkishChars(
+                                'Fiyatlarımıza KDV Dahil Değildir.'),
+                            style: pw.TextStyle(
+                                fontSize: 12, fontStyle: pw.FontStyle.italic)),
                       ],
                     ),
                   ],
@@ -946,7 +1072,8 @@ class CalculateControllerBase extends GetxController {
                 pw.Row(
                   mainAxisAlignment: pw.MainAxisAlignment.center,
                   children: [
-                    pw.Text('OSM Yapi - Tum haklari saklidir', style: const pw.TextStyle(fontSize: 10)),
+                    pw.Text('OSM Yapi - Tum haklari saklidir',
+                        style: const pw.TextStyle(fontSize: 10)),
                   ],
                 ),
               ],
@@ -954,22 +1081,23 @@ class CalculateControllerBase extends GetxController {
           },
         ),
       );
-      
-      final String fileName = 'OSM_YAPI_Hesaplama_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
-      
+
+      final String fileName =
+          'OSM_YAPI_Hesaplama_${DateFormat('yyyyMMdd_HHmmss').format(DateTime.now())}.pdf';
+
       Directory? directory;
       File file;
-      
+
       if (Platform.isAndroid) {
         DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
         AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
         int sdkVersion = androidInfo.version.sdkInt;
-        
+
         if (sdkVersion >= 30) {
           directory = await getApplicationDocumentsDirectory();
           file = File('${directory.path}/$fileName');
           await file.writeAsBytes(await pdf.save());
-          
+
           Get.snackbar(
             'Başarılı',
             'PDF oluşturuldu, açılıyor...',
@@ -978,10 +1106,9 @@ class CalculateControllerBase extends GetxController {
             colorText: Colors.green.shade800,
             duration: const Duration(seconds: 3),
           );
-          
+
           await OpenFile.open(file.path);
-        } 
-        else {
+        } else {
           directory = await getExternalStorageDirectory();
           if (directory == null) {
             Get.snackbar(
@@ -993,10 +1120,10 @@ class CalculateControllerBase extends GetxController {
             );
             return null;
           }
-          
+
           file = File('${directory.path}/$fileName');
           await file.writeAsBytes(await pdf.save());
-          
+
           Get.snackbar(
             'Başarılı',
             'PDF indirildi: $fileName',
@@ -1005,15 +1132,14 @@ class CalculateControllerBase extends GetxController {
             colorText: Colors.green.shade800,
             duration: const Duration(seconds: 3),
           );
-          
+
           await OpenFile.open(file.path);
         }
-      } 
-      else if (Platform.isIOS) {
+      } else if (Platform.isIOS) {
         directory = await getApplicationDocumentsDirectory();
         file = File('${directory.path}/$fileName');
         await file.writeAsBytes(await pdf.save());
-        
+
         Get.snackbar(
           'Başarılı',
           'PDF oluşturuldu, açılıyor...',
@@ -1022,10 +1148,9 @@ class CalculateControllerBase extends GetxController {
           colorText: Colors.green.shade800,
           duration: const Duration(seconds: 3),
         );
-        
+
         await OpenFile.open(file.path);
-      } 
-      else {
+      } else {
         directory = await getDownloadsDirectory();
         if (directory == null) {
           Get.snackbar(
@@ -1037,10 +1162,10 @@ class CalculateControllerBase extends GetxController {
           );
           return null;
         }
-        
+
         file = File('${directory.path}/$fileName');
         await file.writeAsBytes(await pdf.save());
-        
+
         Get.snackbar(
           'Başarılı',
           'PDF indirildi: $fileName',
@@ -1049,10 +1174,10 @@ class CalculateControllerBase extends GetxController {
           colorText: Colors.green.shade800,
           duration: const Duration(seconds: 3),
         );
-        
+
         await OpenFile.open(file.path);
       }
-      
+
       return file;
     } catch (e) {
       Get.snackbar(
@@ -1072,56 +1197,56 @@ class CalculateControllerBase extends GetxController {
       DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
       AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
       int sdkVersion = androidInfo.version.sdkInt;
-      
+
       if (sdkVersion >= 30) {
         return true;
       }
-      
+
       final status = await Permission.storage.status;
-      
+
       if (status.isGranted) {
         return true;
       }
-      
+
       bool showRationale = await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            title: Text('Depolama İzni Gerekli'),
-            content: Text(
-              'PDF dosyalarını telefona indirebilmek için depolama izni gerekiyor. '
-              'Bu izin, hesaplama sonuçlarınızı PDF olarak kaydetmek ve daha sonra erişebilmek için kullanılacaktır.'
-            ),
-            actions: [
-              TextButton(
-                child: Text('İptal'),
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-              ),
-              ElevatedButton(
-                child: Text('İzin Ver'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF3C3C3C),
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
-              ),
-            ],
-          );
-        },
-      ) ?? false;
-      
+            context: context,
+            barrierDismissible: false,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Depolama İzni Gerekli'),
+                content: Text(
+                    'PDF dosyalarını telefona indirebilmek için depolama izni gerekiyor. '
+                    'Bu izin, hesaplama sonuçlarınızı PDF olarak kaydetmek ve daha sonra erişebilmek için kullanılacaktır.'),
+                actions: [
+                  TextButton(
+                    child: Text('İptal'),
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
+                  ),
+                  ElevatedButton(
+                    child: Text('İzin Ver'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF3C3C3C),
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop(true);
+                    },
+                  ),
+                ],
+              );
+            },
+          ) ??
+          false;
+
       if (showRationale) {
         final permissionResult = await Permission.storage.request();
         return permissionResult.isGranted;
       }
-      
+
       return false;
     }
-    
+
     return true;
   }
 
@@ -1133,52 +1258,52 @@ class CalculateControllerBase extends GetxController {
       paketControllers.forEach((_, controller) => controller.dispose());
       profilBoyuControllers.clear();
       paketControllers.clear();
-      
+
       int index = 0;
       for (var product in calculationToEdit!.products) {
         selectedProducts.add(Map<String, dynamic>.from(product));
-        
+
         var profilBoyu = "";
         var paket = "";
-        
+
         if (product.containsKey('profilBoyuDegeri')) {
           final value = product['profilBoyuDegeri'];
           if (value is num && value > 0) {
             profilBoyu = value.toString();
           }
         }
-        
+
         if (product.containsKey('paketDegeri')) {
           final value = product['paketDegeri'];
           if (value is num && value > 0) {
             paket = value.toString();
           }
         }
-        
+
         profilBoyuControllers[index] = TextEditingController(text: profilBoyu);
         paketControllers[index] = TextEditingController(text: paket);
-        
+
         profilBoyuControllers[index]!.addListener(() {
           calculateTotalPrice();
         });
-        
+
         paketControllers[index]!.addListener(() {
           calculateTotalPrice();
         });
-        
+
         index++;
       }
-      
+
       if (calculationToEdit!.products.isNotEmpty) {
         var firstProduct = calculationToEdit!.products[0];
-        
+
         if (firstProduct.containsKey('iskontoOrani')) {
           var iskonto = firstProduct['iskontoOrani'];
           if (iskonto is num) {
             iskontoController.text = iskonto.toString();
           }
         }
-        
+
         if (firstProduct.containsKey('kdvOrani')) {
           var kdv = firstProduct['kdvOrani'];
           if (kdv is num) {
@@ -1186,20 +1311,22 @@ class CalculateControllerBase extends GetxController {
           }
         }
       }
-      
+
       calculateTotalPrice();
     }
   }
 
   // Düzenlenen hesaplamayı güncelle
-  static Future<void> updateCalculation(CalculationHistory updatedCalculation) async {
+  static Future<void> updateCalculation(
+      CalculationHistory updatedCalculation) async {
     try {
-      if (calculationToEditIndex != null && calculationToEditIndex! >= 0 && 
+      if (calculationToEditIndex != null &&
+          calculationToEditIndex! >= 0 &&
           calculationToEditIndex! < calculationHistory.length) {
         calculationHistory[calculationToEditIndex!] = updatedCalculation;
-        
+
         await saveHistoryToStorage();
-        
+
         Get.snackbar(
           'Başarılı',
           'Hesaplama başarıyla güncellendi',
@@ -1218,7 +1345,7 @@ class CalculateControllerBase extends GetxController {
           ],
         );
       }
-      
+
       calculationToEdit = null;
       calculationToEditIndex = null;
     } catch (e) {
