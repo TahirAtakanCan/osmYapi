@@ -68,16 +68,17 @@ class CalculateControllerBase extends GetxController {
 
   String excelType = '';
 
-  RxList<Map<String, dynamic>> excelData = <Map<String, dynamic>>[].obs;
-  RxList<Map<String, dynamic>> filteredExcelData = <Map<String, dynamic>>[].obs;
-  RxString selectedGroup = "Tüm Ürünler".obs;
+  // Performans: Normal List kullan, sadece UI güncellemesi gerektiğinde RxList
+  final RxList<Map<String, dynamic>> excelData = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> filteredExcelData = <Map<String, dynamic>>[].obs;
+  final RxString selectedGroup = "Tüm Ürünler".obs;
 
-  RxList<Map<String, dynamic>> selectedProducts = <Map<String, dynamic>>[].obs;
+  final RxList<Map<String, dynamic>> selectedProducts = <Map<String, dynamic>>[].obs;
 
-  RxDouble toplamTutar = 0.0.obs;
-  RxDouble netTutar = 0.0.obs;
-  RxDouble iskontoTutar = 0.0.obs;
-  RxDouble kdvTutar = 0.0.obs;
+  final RxDouble toplamTutar = 0.0.obs;
+  final RxDouble netTutar = 0.0.obs;
+  final RxDouble iskontoTutar = 0.0.obs;
+  final RxDouble kdvTutar = 0.0.obs;
 
   final iskontoController = TextEditingController(text: '');
   final kdvController = TextEditingController(text: '');
@@ -85,7 +86,7 @@ class CalculateControllerBase extends GetxController {
   final Map<int, TextEditingController> profilBoyuControllers = {};
   final Map<int, TextEditingController> paketControllers = {};
 
-  RxBool isLoading = true.obs;
+  final RxBool isLoading = true.obs;
 
   String codeColumn = '';
   String nameColumn = '';
@@ -93,21 +94,45 @@ class CalculateControllerBase extends GetxController {
   String paketColumn = 'PAKET';
   String fiyatColumn = '';
 
+  // Debounce için timer - gereksiz hesaplamaları önler
+  Worker? _calculateDebouncer;
+
   // Controller'ın başlatılması
   @override
   void onInit() {
     super.onInit();
 
-    iskontoController.addListener(calculateNetTutar);
-    kdvController.addListener(calculateNetTutar);
+    // Debounced listener kullan - çok hızlı değişikliklerde gereksiz hesaplamaları önle
+    iskontoController.addListener(_onIskontoKdvChanged);
+    kdvController.addListener(_onIskontoKdvChanged);
+  }
+
+  // Debounced hesaplama - 300ms bekle
+  void _onIskontoKdvChanged() {
+    _calculateDebouncer?.dispose();
+    _calculateDebouncer = debounce(
+      0.obs,
+      (_) => calculateNetTutar(),
+      time: const Duration(milliseconds: 300),
+    );
+    // Hemen bir değişiklik tetikle
+    calculateNetTutar();
   }
 
   @override
   void onClose() {
+    _calculateDebouncer?.dispose();
     iskontoController.dispose();
     kdvController.dispose();
-    profilBoyuControllers.forEach((_, controller) => controller.dispose());
-    paketControllers.forEach((_, controller) => controller.dispose());
+    // Batch dispose for better performance
+    for (final controller in profilBoyuControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in paketControllers.values) {
+      controller.dispose();
+    }
+    profilBoyuControllers.clear();
+    paketControllers.clear();
     super.onClose();
   }
 
@@ -123,35 +148,55 @@ class CalculateControllerBase extends GetxController {
     filteredExcelData.assignAll(excelData);
   }
 
-  // Ürün ekleme fonksiyonu
+  // Ürün ekleme fonksiyonu - optimized
   void addProduct(Map<String, dynamic> product) {
-    bool isAlreadyAdded = false;
-    if (codeColumn.isNotEmpty && nameColumn.isNotEmpty) {
-      isAlreadyAdded = selectedProducts.any((existingProduct) =>
-          existingProduct[codeColumn] == product[codeColumn] &&
-          existingProduct[nameColumn] == product[nameColumn]);
+    // Early return pattern for better readability
+    if (codeColumn.isEmpty || nameColumn.isEmpty) {
+      _addProductInternal(product);
+      return;
     }
 
-    if (!isAlreadyAdded) {
-      final newProductIndex = selectedProducts.length;
+    final isAlreadyAdded = selectedProducts.any((existingProduct) =>
+        existingProduct[codeColumn] == product[codeColumn] &&
+        existingProduct[nameColumn] == product[nameColumn]);
 
-      selectedProducts.add(Map<String, dynamic>.from(product));
-
-      profilBoyuControllers[newProductIndex] = TextEditingController(text: '');
-      paketControllers[newProductIndex] = TextEditingController(text: '');
-
-      profilBoyuControllers[newProductIndex]!.addListener(() {
-        calculateTotalPrice();
-      });
-
-      paketControllers[newProductIndex]!.addListener(() {
-        calculateTotalPrice();
-      });
-
-      calculateTotalPrice();
-    } else {
+    if (isAlreadyAdded) {
       Get.snackbar('Uyarı', 'Bu ürün zaten eklenmiş!',
-          snackPosition: SnackPosition.BOTTOM);
+          snackPosition: SnackPosition.BOTTOM,
+          duration: const Duration(seconds: 2));
+      return;
+    }
+
+    _addProductInternal(product);
+  }
+
+  void _addProductInternal(Map<String, dynamic> product) {
+    final newProductIndex = selectedProducts.length;
+
+    selectedProducts.add(Map<String, dynamic>.from(product));
+
+    // Controller'ları oluştur
+    final profilController = TextEditingController(text: '');
+    final paketController = TextEditingController(text: '');
+    
+    profilBoyuControllers[newProductIndex] = profilController;
+    paketControllers[newProductIndex] = paketController;
+
+    // Debounced listener ekle - performans için
+    profilController.addListener(() => _debouncedCalculate());
+    paketController.addListener(() => _debouncedCalculate());
+
+    calculateTotalPrice();
+  }
+
+  // Debounced hesaplama için yardımcı
+  DateTime? _lastCalculateTime;
+  void _debouncedCalculate() {
+    final now = DateTime.now();
+    if (_lastCalculateTime == null || 
+        now.difference(_lastCalculateTime!).inMilliseconds > 100) {
+      _lastCalculateTime = now;
+      calculateTotalPrice();
     }
   }
 

@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'calculate_controller_base.dart';
 
 class CalculateControllerAlfapen extends CalculateControllerBase {
-  final Map<String, Map<String, dynamic>> groupDefinitionsAlfa = {
+  // Sabit grup tanımları - performans için const Map
+  static const Map<String, Map<String, int>> groupDefinitionsAlfa = {
     "Tüm Ürünler": {"startRow": 0, "endRow": -1},
     "ECO70 PROFIT Serisi": {"startRow": 0, "endRow": 19},
     "7000 Sürme Serisi": {"startRow": 20, "endRow": 46},
@@ -21,27 +21,26 @@ class CalculateControllerAlfapen extends CalculateControllerBase {
       return;
     }
     
-    if (!groupDefinitionsAlfa.containsKey(groupName)) {
+    final groupInfo = groupDefinitionsAlfa[groupName];
+    if (groupInfo == null) {
       filteredExcelData.assignAll(excelData);
       return;
     }
     
-    var groupInfo = groupDefinitionsAlfa[groupName]!;
-    int startRow = groupInfo["startRow"] as int;
-    int endRow = groupInfo["endRow"] as int;
+    final startRow = groupInfo["startRow"]!;
+    var endRow = groupInfo["endRow"]!;
     
     if (endRow == -1) {
       endRow = excelData.length - 1;
     }
     
-    List<Map<String, dynamic>> filtered = [];
-    for (int i = 0; i < excelData.length; i++) {
-      if (i >= startRow && i <= endRow) {
-        filtered.add(excelData[i]);
-      }
+    // Optimized: sublist kullan, döngü yerine
+    if (startRow < excelData.length) {
+      final actualEnd = (endRow + 1).clamp(0, excelData.length);
+      filteredExcelData.assignAll(excelData.sublist(startRow, actualEnd));
+    } else {
+      filteredExcelData.clear();
     }
-    
-    filteredExcelData.assignAll(filtered);
   }
 
   // Toplam tutarı hesaplama fonksiyonu - Alfa Pen için hesaplama mantığı

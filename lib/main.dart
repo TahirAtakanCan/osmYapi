@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'homeScreen.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -29,19 +30,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'OSM Yapı',
       debugShowCheckedModeBanner: false,
+      // Performans optimizasyonu: Gereksiz rebuild'leri önle
+      defaultTransition: Transition.fadeIn,
+      transitionDuration: const Duration(milliseconds: 200),
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Color(0xFFF47B20)),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFF47B20)),
         useMaterial3: true,
+        // Performans için platform adaptive özelliklerini kapat
+        platform: TargetPlatform.android,
       ),
       home: const HomeScreen(),
     );
   }
-}
-
-//-> Yapılacaklar yeni alfa pen 
-// ECO70 PROFİT /BEYAZ ÇİFT YÜZ LAMİNE 
-//7000 sürme seri 
-// YARDIMCI PROFİLLER 70 LİK SERİ / ORTAK KULLANIM 
+} 
