@@ -68,15 +68,14 @@ class _CalculateScreenState extends State<CalculateScreen> {
       // Winer için Google Sheets CSV, Alfa Pen için yerel Excel
       if (widget.buttonType.contains('Winer')) {
         // WINER - Önce internet kontrolü yap
-        String excelType = 'Winer - 61';
         bool hasInternet = await CacheService.hasInternetConnection();
         
         if (hasInternet) {
           // İnternet varsa: Online'dan çek ve cache'e kaydet
-          await _loadWinerFromOnline(excelType);
+          await _loadWinerFromOnline();
         } else {
           // İnternet yoksa: Cache'den yükle
-          await _loadWinerFromCache(excelType);
+          await _loadWinerFromCache();
         }
       } else if (widget.buttonType.contains('Alfa Pen')) {
         // ALFA PEN - Yerel Excel dosyasından yükle (mevcut kod)
@@ -211,11 +210,11 @@ class _CalculateScreenState extends State<CalculateScreen> {
   }
 
   /// İnternetten Winer verilerini çek ve cache'e kaydet
-  Future<void> _loadWinerFromOnline(String excelType) async {
+  Future<void> _loadWinerFromOnline() async {
     String csvUrl =
         'https://docs.google.com/spreadsheets/d/e/2PACX-1vRuNLxisljropuR9vv2cT_-sKLssJWI_BIXJ0jJmLbX4TXcWLCyYtWjaRGuTDjLursOuJXDCy1t-mFl/pub?output=csv';
 
-    print('Veri indiriliyor (Online): $excelType');
+    print('Veri indiriliyor (Online)');
 
     // İnternetten Veriyi Çek
     final response = await http.get(Uri.parse(csvUrl));
@@ -274,18 +273,61 @@ class _CalculateScreenState extends State<CalculateScreen> {
 
     print('CSV\'den yüklenen veri sayısı: ${finalData.length}');
 
+    // Dinamik Winer adını al - esnek kolon algılama
+    String dynamicWinerName = widget.buttonType; // varsayılan
+    
+    // Yöntem 1: "SERİ" içeren sütun başlığını bul
+    for (int i = 0; i < headers.length; i++) {
+      if (headers[i].toUpperCase().contains('SERİ') ||
+          headers[i].toUpperCase().contains('SERI')) {
+        if (finalData.isNotEmpty && finalData[0].containsKey(headers[i])) {
+          String? val = finalData[0][headers[i]]?.toString().trim();
+          if (val != null && val.isNotEmpty) {
+            dynamicWinerName = val;
+            break;
+          }
+        }
+      }
+    }
+    
+    // Yöntem 2: H sütunu (index 7) kontrol et
+    if (dynamicWinerName == widget.buttonType && headers.length > 7) {
+      // Başlığın kendisi Winer içeriyorsa
+      if (headers[7].toLowerCase().contains('winer')) {
+        dynamicWinerName = headers[7];
+      } else if (finalData.isNotEmpty && finalData[0].containsKey(headers[7])) {
+        String? hVal = finalData[0][headers[7]]?.toString().trim();
+        if (hVal != null && hVal.isNotEmpty && hVal.toLowerCase().contains('winer')) {
+          dynamicWinerName = hVal;
+        }
+      }
+    }
+    
+    // Yöntem 3: Herhangi bir başlık Winer-XX formatında mı?
+    if (dynamicWinerName == widget.buttonType) {
+      for (var h in headers) {
+        if (RegExp(r'[Ww]iner\s*-\s*\d+').hasMatch(h.trim())) {
+          dynamicWinerName = h.trim();
+          break;
+        }
+      }
+    }
+    
+    await CacheService.cacheWinerName(dynamicWinerName);
+    print('Winer gösterim adı: $dynamicWinerName');
+
     // Veriyi cache'e kaydet
     await CacheService.cacheWinerData(finalData);
 
     // Veriyi Controller'a Yükle
     controller.setExcelData(finalData);
-    controller.setExcelType(excelType);
+    controller.setExcelType(dynamicWinerName);
     controller.filterByGroup("Tüm Ürünler");
 
     // Başarılı yükleme bildirimi
     Get.snackbar(
       'Veriler Güncellendi',
-      'Ürün listesi internetten başarıyla güncellendi',
+      'Ürün listesi internetten başarıyla güncellendi ($dynamicWinerName)',
       snackPosition: SnackPosition.BOTTOM,
       backgroundColor: Colors.green.shade100,
       colorText: Colors.green.shade800,
@@ -295,17 +337,18 @@ class _CalculateScreenState extends State<CalculateScreen> {
   }
 
   /// Cache'den Winer verilerini yükle
-  Future<void> _loadWinerFromCache(String excelType) async {
-    print('Cache\'den veri yükleniyor: $excelType');
+  Future<void> _loadWinerFromCache() async {
+    print('Cache\'den veri yükleniyor');
 
     final cachedData = await CacheService.getCachedWinerData();
+    final cachedName = await CacheService.getWinerName();
 
     if (cachedData != null && cachedData.isNotEmpty) {
       print('Cache\'den yüklenen veri sayısı: ${cachedData.length}');
 
       // Veriyi Controller'a Yükle
       controller.setExcelData(cachedData);
-      controller.setExcelType(excelType);
+      controller.setExcelType(cachedName);
       controller.filterByGroup("Tüm Ürünler");
 
       // Cache'den yükleme bildirimi

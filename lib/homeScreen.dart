@@ -5,6 +5,7 @@ import 'HistoryScreen.dart';
 import 'calculate_controller_base.dart';
 import 'calculate_controller_winer.dart';
 import 'calculate_controller_alfapen.dart';
+import 'services/cache_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,10 +15,31 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  String _winerDisplayName = 'Winer - 62'; // Varsayılan, cache'den güncellenecek
+
   @override
   void initState() {
     super.initState();
     _loadCalculationHistory();
+    _loadWinerName();
+  }
+
+  Future<void> _loadWinerName() async {
+    // 1. Önce cache'den hızlıca yükle (anında gösterilsin)
+    final cachedName = await CacheService.getWinerName();
+    if (mounted) {
+      setState(() {
+        _winerDisplayName = cachedName;
+      });
+    }
+
+    // 2. Arkaplanda Sheets'ten güncel adı çek
+    final sheetsName = await CacheService.fetchWinerNameFromSheets();
+    if (sheetsName != null && sheetsName != cachedName && mounted) {
+      setState(() {
+        _winerDisplayName = sheetsName;
+      });
+    }
   }
 
   Future<void> _loadCalculationHistory() async {
@@ -222,7 +244,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         width: isSmallScreen ? double.infinity : screenSize.width * 0.7,
                         child: _buildButton(
                           context, 
-                          'Winer - 62', 
+                          _winerDisplayName, 
                           const Color(0xFFF47B20),
                           isFullWidth: true
                         ),
@@ -276,6 +298,11 @@ class _HomeScreenState extends State<HomeScreen> {
             controller.profilBoyuControllers.clear();
             controller.paketControllers.clear();
             controller.calculateTotalPrice();
+
+            // Winer adını güncelle (Sheets'ten yeni ad gelmiş olabilir)
+            if (text.contains('Winer')) {
+              _loadWinerName();
+            }
           });
         },
         style: ElevatedButton.styleFrom(
